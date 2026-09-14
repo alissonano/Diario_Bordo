@@ -1,0 +1,46 @@
+﻿<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary fw-bold">Módulo de Setup</h2>
+            <p class="text-muted">Selecione uma das opções abaixo para gerenciar as configurações das máquinas.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 h-100 p-3">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-file-alt fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Gerenciar Folhas</h5>
+                    <p class="card-text text-muted">Upload, visualização e remoção de arquivos de setup de feeders.</p>
+                    <a asp-action="FolhasAlimentacao" class="btn btn-outline-primary w-100">Acessar</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 h-100 p-3">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-check-double fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Feeder Check</h5>
+                    <p class="card-text text-muted">Web App para o operador conferir a alimentação correta das linhas.</p>
+                    <a asp-action="FeederCheck" class="btn btn-outline-success w-100">Iniciar Checklist</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+</style>

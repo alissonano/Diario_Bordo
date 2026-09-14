@@ -1,0 +1,237 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.Estoque.Fornecedor>
+
+<style>
+    .main-container {
+        background-color: #f4f7f6;
+        min-height: 100vh;
+    }
+
+    /* Botão Voltar */
+    .btn-back {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s;
+    }
+
+        .btn-back:hover {
+            background: #f8f9fa;
+            color: #212529;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+    /* Layout Mobile (Cards) por padrão */
+    .forn-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        border: 1px solid #eef2f1;
+        display: block;
+    }
+
+    /* Esconder a tabela no mobile */
+    .desktop-table {
+        display: none;
+    }
+
+    /* --- ADAPTAÇÃO PARA DESKTOP --- */
+    @@media (min-width: 992px) {
+        .forn-card {
+            display: none;
+        }
+
+        .desktop-table {
+            display: block;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table thead th {
+            background-color: #f8f9fa;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+    }
+
+    .btn-action {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: 0.2s;
+    }
+
+    .search-wrapper {
+        background: white;
+        border-radius: 50px;
+        padding: 5px 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+</style>
+
+<div class="main-container py-4">
+    <div class="container-fluid px-md-5">
+
+        @* Header Dinâmico com Botão Voltar *@
+        <div class="row align-items-center mb-4 g-3">
+            <div class="col-12 col-lg-6">
+                <div class="d-flex align-items-center">
+                    @* Ajuste o asp-controller/asp-action conforme o seu Dashboard *@
+                    <a asp-controller="Estoque" asp-action="Index" class="btn-back me-3" title="Voltar ao Início">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <div>
+                        <h2 class="fw-bold m-0"><i class="bi bi-building me-2 text-info"></i>Fornecedores</h2>
+                        <span class="text-muted small">@Model.Count() registros encontrados</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6 text-lg-end">
+                <a asp-action="Cadastrar" class="btn btn-dark btn-lg rounded-pill px-4 fs-6 shadow-sm w-100 w-lg-auto">
+                    <i class="bi bi-plus-lg me-2"></i>NOVO FORNECEDOR
+                </a>
+            </div>
+        </div>
+
+        @* Busca *@
+        <div class="search-wrapper mb-4 d-flex align-items-center">
+            <i class="bi bi-search text-muted me-2"></i>
+            <input type="text" id="fornSearch" class="form-control border-0 shadow-none" placeholder="Buscar por nome, CNPJ ou contato...">
+        </div>
+
+        @* VIEW MOBILE: Cards *@
+        <div id="mobileContainer">
+            @foreach (var f in Model)
+            {
+                <div class="forn-card item-pesquisa">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="fw-bold fs-5 text-dark">@f.NomeFantasia</div>
+                            <div class="text-muted small">@f.RazaoSocial</div>
+                        </div>
+                        <span class="badge bg-light text-dark border">CNPJ: @f.Cnpj</span>
+                    </div>
+
+                    <div class="bg-light rounded p-3 mb-3">
+                        <div class="small text-uppercase fw-bold text-muted mb-2" style="font-size: 0.65rem;">Contato Principal</div>
+                        @if (!string.IsNullOrEmpty(f.Contato))
+                        {
+                            var p = f.Contato.Split('|')[0];
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-circle me-2 text-info"></i>
+                                <span class="fw-medium">@p</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button onclick="abrirCartaoVisita('@f.NomeFantasia', '@f.Contato', '@f.Email', '@f.Telefone')"
+                                class="btn btn-info text-white w-100 rounded-pill">
+                            <i class="bi bi-person-vcard me-2"></i>Ver Tudo
+                        </button>
+                        <a asp-action="Editar" asp-route-id="@f.Id" class="btn btn-outline-dark w-100 rounded-pill">
+                            <i class="bi bi-pencil-square me-2"></i>Editar
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* VIEW DESKTOP: Tabela Tradicional *@
+        <div class="desktop-table shadow-sm">
+            <table class="table align-middle m-0" id="fornTable">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Contato</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        <tr class="item-pesquisa">
+                            <td class="ps-4">
+                                <div class="fw-bold">@f.NomeFantasia</div>
+                                <div class="text-muted small">@f.RazaoSocial</div>
+                            </td>
+                            <td class="text-muted">@f.Cnpj</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(f.Contato))
+                                {
+                                    <span class="badge bg-info-subtle text-info border-0 rounded-pill px-3">
+                                        @f.Contato.Split('|')[0]
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <button onclick="abrirCartaoVisita('@f.NomeFantasia', '@f.Contato', '@f.Email', '@f.Telefone')" class="btn-action btn btn-light border me-1"><i class="bi bi-eye"></i></button>
+                                <a asp-action="Editar" asp-route-id="@f.Id" class="btn-action btn btn-dark"><i class="bi bi-pencil"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* Modal de Contatos *@
+<div class="modal fade" id="modalContato" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white border-0">
+                <h5 class="modal-title fw-bold" id="tituloModal">Contatos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light" id="corpoModalContatos"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('fornSearch').addEventListener('input', function () {
+            const term = this.value.toLowerCase();
+            document.querySelectorAll('.item-pesquisa').forEach(el => {
+                el.style.display = el.innerText.toLowerCase().includes(term) ? "" : "none";
+            });
+        });
+
+        function abrirCartaoVisita(empresa, contatoStr, emailStr, telStr) {
+            const nomes = contatoStr.split('|');
+            const emails = emailStr ? emailStr.split('|') : [];
+            const tels = telStr ? telStr.split('|') : [];
+            document.getElementById('tituloModal').innerHTML = empresa;
+            let html = '';
+            nomes.forEach((nome, i) => {
+                if (nome.trim() !== "") {
+                    html += `
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-2">${nome.trim()}</h6>
+                                <div class="small mb-1"><i class="bi bi-envelope me-2"></i>${emails[i] || 'N/A'}</div>
+                                <div class="small fw-bold text-success"><i class="bi bi-whatsapp me-2"></i>${tels[i] || 'N/A'}</div>
+                            </div>
+                        </div>`;
+                }
+            });
+            document.getElementById('corpoModalContatos').innerHTML = html || '<p class="text-center">Sem contatos.</p>';
+            new bootstrap.Modal(document.getElementById('modalContato')).show();
+        }
+    </script>
+}

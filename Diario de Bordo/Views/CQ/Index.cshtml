@@ -1,0 +1,156 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.CQ>
+
+@{
+    ViewData["Title"] = "Inspeções CQ - Diário de Bordo";
+    var usuarioLogado = ViewBag.Usuario ?? "Desconhecido";
+    bool isAdmin = ViewBag.IsAdmin == true;
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Inspeções Diárias CQ</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaInspecao">
+        Criar Nova Inspeção
+    </button>
+</div>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Cliente</th>
+            <th>Modelo</th>
+            <th>Programa</th>
+            <th>Fase</th>
+            <th>OP</th>
+            <th>Turno</th>
+            <th>Responsável</th>
+            <th>Status</th>
+            <th>Comentários</th>
+            <th>Evidências</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Date_field.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@item.Cliente</td>
+                <td>@item.Modelo</td>
+                <td>@item.Programa</td>
+                <td>@item.Fase</td>
+                <td>@item.OP</td>
+                <td>@item.Turno</td>
+                <td>@item.Responsavel</td>
+                <td class="text-center @(item.Status == "Aprovado" ? "text-success" :
+                                                              item.Status == "Reprovado" ? "text-danger" : "text-secondary")">
+                @item.Status
+            </td>
+            <td>@item.ComentarioGeral</td>
+
+                <td>
+                    <a asp-action="Create" asp-route-id="@item.Id" class="btn btn-sm btn-info">Ver Evidências</a>
+                </td>
+
+                <td class="text-center">
+                    <form asp-action="Delete" asp-route-id="@item.Id" method="post"
+                          onsubmit="return confirm('Deseja realmente excluir esta inspeção?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                    </form>
+                </td>
+            </tr>
+                }
+    </tbody>
+</table>
+
+<!-- Modal Nova Inspeção -->
+<div class="modal fade" id="modalNovaInspecao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formNovaInspecao" method="post" asp-action="NovaInspecao">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Inspeção CQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Campos da inspeção -->
+                    <div class="mb-3">
+                        <label for="OP" class="form-label">OP</label>
+                        <input type="text" id="OP" name="Inspecao.OP" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="Cliente" class="form-label">Cliente</label>
+                        <select id="Cliente" name="Inspecao.Cliente" class="form-select" required>
+                            <option>GERTEC</option>
+                            <option>HIKIVISION</option>
+                            <option>ZYXEL</option>
+                            <option>TCL</option>
+                            <option>EFL</option>
+                            <option>JOVI</option>
+                            <option>TELLESCOM</option>
+                            <option>VIVENSIS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Modelo" class="form-label">Modelo</label>
+                        <input type="text" id="Modelo" name="Inspecao.Modelo" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="Programa" class="form-label">Programa</label>
+                        <input type="text" id="Programa" name="Inspecao.Programa" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="Fase" class="form-label">Fase</label>
+                        <select id="Fase" name="Inspecao.Fase" class="form-select" required>
+                            <option>BOT</option>
+                            <option>TOP</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Turno" class="form-label">Turno</label>
+                        <select id="Turno" name="Inspecao.Turno" class="form-select" required>
+                            <option>1° Turno</option>
+                            <option>2° Turno</option>
+                            <option>3° Turno</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Preencher Checklist</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("formNovaInspecao").addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const fd = new FormData(form);
+
+            try {
+                const resp = await fetch(form.action, { method: "POST", body: fd });
+                const data = await resp.json();
+
+                if (data.sucesso) {
+                    // fecha a modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("modalNovaInspecao"));
+                    modal.hide();
+
+                    // redireciona para a tela de checklist
+                    window.location.href = data.redirectUrl;
+                } else {
+                    alert("Erro: " + data.mensagem);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao enviar formulário: " + err.message);
+            }
+        });
+    </script>
+}
+

@@ -1,0 +1,1514 @@
+﻿@{
+    ViewData["Title"] = "Andon SMT";
+    var usuario = Context.Session.GetString("UsuarioLogado") ?? "op@ad.gbrsmtserver.local";
+
+    // Definição dos grupos de 5 linhas para cada página
+    var grupo1 = new[] { "SMD1", "SMD2"};
+    var grupo2 = new[] { "SMD3", "SMD4" };
+    var grupo3 = new[] { "SMD5", "SMD6" };
+    var grupo4 = new[] { "SMD7", "SMD8" };
+    var grupo5 = new[] { "SMD9", "SMD10" };
+}
+
+<style>
+        body {
+                background-color: #f0f2f5;
+                font-family: 'Inter', 'Segoe UI', sans-serif;
+                overflow-x: hidden; /* Permitir scroll vertical se necessário, mas travar horizontal */
+
+    }
+
+
+    /* Cores vibrantes para os status de eficiência */
+        .bg-vibrant-green {
+                background-color: #10b981 !important;
+                color: white !important;
+
+    }
+
+        .bg-vibrant-orange {
+                background-color: #f59e0b !important;
+                color: white !important;
+
+    }
+
+        .bg-vibrant-red {
+                background-color: #ef4444 !important;
+                color: white !important;
+
+    }
+
+
+    /* Estilo base da badge de eficiência para garantir que ela apareça */
+        .eficiencia-badge {
+                display: inline-block;
+                min-width: 100px;
+                padding: 10px 20px;
+                border-radius: 50px;
+                font-size: 2.8rem;
+                font-weight: 900;
+                transition: all 0.5s ease;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+    }
+
+
+    /* Ajuste para o emoji não sumir */
+        .emoji-container {
+                height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+    }
+
+
+    /* CABEÇALHO */
+        .header-container {
+                background: white;
+                padding: 1rem 2rem;
+                border-bottom: 1px solid #e2e8f0;
+                margin-bottom: 20px;
+
+    }
+
+
+    /* PAGINAÇÃO */
+        .grupo-cards {
+                
+                display: none !important;
+                width: 100%;
+
+
+    }
+
+
+                .grupo-cards.active {
+                        display: flex !important;
+                        animation: slideIn 0.8s forwards;
+
+        }
+
+        @@keyframes slideIn {
+                from
+
+    {
+                    opacity: 0;
+                    transform: translateX(30px);
+
+    }
+
+            to {
+                    opacity: 1;
+                    transform: translateX(0);
+
+    }
+
+
+    }
+
+
+    /* CARDS */
+        .card-linha {
+        height: auto;
+                border-radius: 20px;
+                border: none;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+                background: white;
+
+    }
+
+                .card-linha:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+
+        }
+
+
+    /* LETREIRO COM PAUSA */
+        .marquee-container {
+                background: #f8fafc;
+                border-radius: 12px;
+                padding: 8px 12px;
+                border-left: 5px solid #10b981;
+                margin: 10px 0;
+                overflow: hidden; /* Esconde o que sobra */
+                white-space: nowrap;
+                position: relative;
+
+    }
+
+        .marquee-text {
+                display: inline-block;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: #1e293b;
+                padding-left: 0;
+
+        /* Animação: 15s de duração, começa após 5s de delay, infinita */
+                animation: pause-and-scroll 5s linear 10s infinite;
+
+    }
+
+        @@keyframes pause-and-scroll {
+                0%    
+
+    {
+                transform: translateX(0);
+
+    }
+
+
+    /* Fica parado em 0% até uma parte do tempo (opcional, já tem o delay inicial) */
+        10% {
+                transform: translateX(0);
+
+    }
+
+
+    /* Move até o final (ajuste -100% dependendo do tamanho do texto) */
+        90% {
+                transform: translateX(-100%);
+
+    }
+
+        100% {
+                transform: translateX(-100%);
+
+    }
+
+
+    }
+    /* Identificadores de Lado */
+    .badge-lado {
+        font-size: 1.4rem;
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-weight: 800;
+        min-width: 90px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .lado-top {
+        background-color: #0284c7 !important;
+        color: white !important;
+    }
+
+    .lado-bot {
+        background-color: #f59e0b !important;
+        color: #1e293b !important;
+    }
+
+    /* Badge de Panelização */
+    .badge-pan {
+        font-size: 1.1rem;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* EMOJIS E EFICIÊNCIA */
+        .emoji-container {
+                font-size: 6rem;
+                margin: 5px 5px;
+
+    }
+
+        .eficiencia-badge {
+                font-size: 2rem;
+                font-weight: 900;
+                padding: 8px 30px;
+                border-radius: 50px;
+                color: white;
+                display: inline-block;
+
+    }
+
+        .box-meta-info {
+                background: #1e293b;
+                border-radius: 15px;
+                padding: 20px;
+                color: white;
+
+    }
+
+        .text-produzido {
+                font-size: 3.5rem;
+                font-weight: 950;
+                line-height: 1;
+
+    }
+
+        .text-meta-valor {
+                font-size: 2.2rem;
+                font-weight: 900;
+
+    }
+
+        .label-andon {
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                color: white;
+                font-weight: 700;
+
+    }
+
+    #clock {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1;
+        font-variant-numeric: tabular-nums; /* O relógio ficará fixo sem pular */
+    }
+
+
+    /* BOTÕES FLUTUANTES */
+        .btn-floating-nav {
+                position: fixed;
+                top: 55%;
+                background: rgba(30, 41, 59, 0.1);
+                border: none;
+                width: 50px;
+                height: 80px;
+                z-index: 100;
+                transition: 0.3s;
+
+    }
+
+                .btn-floating-nav:hover {
+                        background: #1e293b;
+                        color: white;
+
+        }
+
+                .btn-floating-nav.left {
+                        left: 0;
+                        border-radius: 0 10px 10px 0;
+
+        }
+
+                .btn-floating-nav.right {
+                        right: 0;
+                        border-radius: 10px 0 0 10px;
+
+        }
+
+
+        .col-xl-2-4 {
+                justify-content: center;
+                width: 50%;
+                padding: 10px;
+
+    }
+
+        @@media (max-width: 1400px) {
+                .col-xl-2-4
+
+    {
+                    width: 50%;
+
+    }
+
+
+    /* 3 por linha em telas menores */
+
+    }
+
+        .card-linha {
+                min-height: 480px; /* Garante alinhamento visual */
+
+    }
+
+
+    /* Padronização para Firefox e Chrome */
+    input[type="datetime-local"] {
+        appearance: none;
+        -webkit-appearance: none;
+        min-height: 45px;
+        background-color: #fff;
+        cursor: pointer;
+    }
+
+        /* Garante que o seletor apareça ao clicar em qualquer lugar do input no Firefox */
+        input[type="datetime-local"]::-moz-calendar-picker-indicator {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .form-control-lg {
+        position: relative;
+    }
+</style>
+
+<div class="container-fluid pt-2" style="justify-content: center">
+    <div class="header-container shadow-sm bg-white p-3">
+        <div class="row align-items-center">
+            <div class="col-lg-3 col-md-4">
+                <img src="/images/gbr-logo.png" alt="AURA Logo" style="height: 50px;">
+            </div>
+
+            <div class="col-lg-9 col-md-8">
+                <div class="d-flex justify-content-end align-items-center gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-dark fw-bold border-0 text-nowrap" onclick="abrirPainelMetas()">
+                        <i class="bi bi-sliders text-success"></i>CONF. METAS
+                    </button>
+                    <button class="btn btn-sm btn-outline-dark fw-bold border-0 text-nowrap" onclick="dispararExtracaoLWS()">
+                        <i class="bi bi-robot text-warning"></i>RELAT. PANASONIC
+                    </button>
+                    <button class="btn btn-sm btn-outline-dark fw-bold border-0 text-nowrap" onclick="abrirCentralExtracao()">
+                        <i class="bi bi-cloud-arrow-down-fill text-primary"></i>RELAT. FUJI
+                    </button>
+
+                    <div class="vr mx-2 d-none d-md-block"></div>
+
+                    <div class="text-end">
+                        <div id="clock" style="font-size: 1.2rem; font-weight: 800; color: #1e293b; line-height: 1;">00:00:00</div>
+                        <span class="badge bg-light text-dark border small" id="page-indicator">PG 1/5</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-floating-nav left" onclick="mudarPaginaManualmente(-1)"><i class="bi bi-chevron-left"></i></button>
+    <button class="btn-floating-nav right" onclick="mudarPaginaManualmente(1)"><i class="bi bi-chevron-right"></i></button>
+
+    <div class="row grupo-cards active" style="justify-content: center" id="grupo1">
+        @foreach (var linha in grupo1)
+        {
+            <div class="col-xl-2-4">
+                <div class="card card-linha shadow-sm" onclick="window.location.href='/Fuji/Monitoramento?line=@linha'">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-2">
+                            <h2 class="fw-black m-0" style="font-size: 4.2rem; line-height: 1;">@linha</h2>
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <span id="badge-lado-@linha" class="badge-lado lado-bot shadow-sm">-</span>
+                                <span id="badge-pan-@linha" class="badge badge-pan d-flex align-items-center px-3">PAN: 1</span>
+                            </div>
+                        </div>
+
+                        <div class="emoji-container">
+                            <img id="gbot-@linha" src="/EMOJI/happy-emoji.gif" style="height: 100px; width: auto; object-fit: contain;" />
+                        </div>
+                        <div id="status-text-@linha" class="badge rounded-pill bg-dark mb-3"
+                             style="font-size: 0.9rem; padding: 8px 15px; width: 33%; min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            CARREGANDO...
+                        </div>
+
+                        <div class="mb-3">
+                            <div id="eficiencia-real-@linha" class="eficiencia-badge bg-secondary" style="font-size: 3.0rem;">0%</div>
+                        </div>
+
+                        <div class="marquee-container" style="margin: 5px 0;">
+                            <div class="marquee-text" id="prod-@linha" style="font-size: 1.5rem;">SINCRONIZANDO...</div>
+                        </div>
+
+                        <div class="box-meta-info p-2">
+                            <span class="label-andon" style="font-size: 2.0rem;">Total Acumulado</span>
+                            <div id="qtd-@linha" class="text-produzido" style="font-size: 2.8rem;">0</div>
+                            <div class="row mt-2 border-top border-secondary pt-2">
+                                <div class="col-6 border-end border-secondary">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Hora</span>
+                                    <div id="meta-hora-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                                <div class="col-6">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Turno</span>
+                                    <div id="meta-turno-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="row grupo-cards" id="grupo2">
+        @foreach (var linha in grupo2)
+        {
+            <div class="col-xl-2-4">
+                <div class="card card-linha shadow-sm" onclick="window.location.href='/Fuji/Monitoramento?line=@linha'">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-2">
+                            <h2 class="fw-black m-0" style="font-size: 4.2rem; line-height: 1;">@linha</h2>
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <span id="badge-lado-@linha" class="badge-lado lado-bot shadow-sm">-</span>
+                                <span id="badge-pan-@linha" class="badge badge-pan d-flex align-items-center px-3">PAN: 1</span>
+                            </div>
+                        </div>
+
+                        <div class="emoji-container">
+                            <img id="gbot-@linha" src="/EMOJI/happy-emoji.gif" style="height: 100px; width: auto; object-fit: contain;" />
+                        </div>
+                        <div id="status-text-@linha" class="badge rounded-pill bg-dark mb-2 w-100">CARREGANDO...</div>
+
+                        <div class="mb-3">
+                            <div id="eficiencia-real-@linha" class="eficiencia-badge bg-secondary" style="font-size: 3.0rem;">0%</div>
+                        </div>
+
+                        <div class="marquee-container" style="margin: 5px 0;">
+                            <div class="marquee-text" id="prod-@linha" style="font-size: 1.5rem;">SINCRONIZANDO...</div>
+                        </div>
+
+                        <div class="box-meta-info p-2">
+                            <span class="label-andon" style="font-size: 2.0rem;">Total Acumulado</span>
+                            <div id="qtd-@linha" class="text-produzido" style="font-size: 2.8rem;">0</div>
+                            <div class="row mt-2 border-top border-secondary pt-2">
+                                <div class="col-6 border-end border-secondary">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Hora</span>
+                                    <div id="meta-hora-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                                <div class="col-6">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Turno</span>
+                                    <div id="meta-turno-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="row grupo-cards" id="grupo3">
+        @foreach (var linha in grupo3)
+        {
+            <div class="col-xl-2-4">
+                <div class="card card-linha shadow-sm" onclick="window.location.href='/Fuji/Monitoramento?line=@linha'">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-2">
+                            <h2 class="fw-black m-0" style="font-size: 4.2rem; line-height: 1;">@linha</h2>
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <span id="badge-lado-@linha" class="badge-lado lado-bot shadow-sm">-</span>
+                                <span id="badge-pan-@linha" class="badge badge-pan d-flex align-items-center px-3">PAN: 1</span>
+                            </div>
+                        </div>
+
+                        <div class="emoji-container">
+                            <img id="gbot-@linha" src="/EMOJI/happy-emoji.gif" style="height: 100px; width: auto; object-fit: contain;" />
+                        </div>
+                        <div id="status-text-@linha" class="badge rounded-pill bg-dark mb-2 w-100">CARREGANDO...</div>
+
+                        <div class="mb-3">
+                            <div id="eficiencia-real-@linha" class="eficiencia-badge bg-secondary" style="font-size: 3.0rem;">0%</div>
+                        </div>
+
+                        <div class="marquee-container" style="margin: 5px 0;">
+                            <div class="marquee-text" id="prod-@linha" style="font-size: 1.5rem;">SINCRONIZANDO...</div>
+                        </div>
+
+                        <div class="box-meta-info p-2">
+                            <span class="label-andon" style="font-size: 2.0rem;">Total Acumulado</span>
+                            <div id="qtd-@linha" class="text-produzido" style="font-size: 2.8rem;">0</div>
+                            <div class="row mt-2 border-top border-secondary pt-2">
+                                <div class="col-6 border-end border-secondary">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Hora</span>
+                                    <div id="meta-hora-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                                <div class="col-6">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Turno</span>
+                                    <div id="meta-turno-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="row grupo-cards" id="grupo4">
+        @foreach (var linha in grupo4)
+        {
+            <div class="col-xl-2-4">
+                <div class="card card-linha shadow-sm" onclick="window.location.href='/Fuji/Monitoramento?line=@linha'">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-2">
+                            <h2 class="fw-black m-0" style="font-size: 4.2rem; line-height: 1;">@linha</h2>
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <span id="badge-lado-@linha" class="badge-lado lado-bot shadow-sm">-</span>
+                                <span id="badge-pan-@linha" class="badge badge-pan d-flex align-items-center px-3">PAN: 1</span>
+                            </div>
+                        </div>
+
+                        <div class="emoji-container">
+                            <img id="gbot-@linha" src="/EMOJI/happy-emoji.gif" style="height: 100px; width: auto; object-fit: contain;" />
+                        </div>
+                        <div id="status-text-@linha" class="badge rounded-pill bg-dark mb-2 w-100">CARREGANDO...</div>
+
+                        <div class="mb-3">
+                            <div id="eficiencia-real-@linha" class="eficiencia-badge bg-secondary" style="font-size: 3.0rem;">0%</div>
+                        </div>
+
+                        <div class="marquee-container" style="margin: 5px 0;">
+                            <div class="marquee-text" id="prod-@linha" style="font-size: 1.5rem;">SINCRONIZANDO...</div>
+                        </div>
+
+                        <div class="box-meta-info p-2">
+                            <span class="label-andon" style="font-size: 2.0rem;">Total Acumulado</span>
+                            <div id="qtd-@linha" class="text-produzido" style="font-size: 2.8rem;">0</div>
+                            <div class="row mt-2 border-top border-secondary pt-2">
+                                <div class="col-6 border-end border-secondary">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Hora</span>
+                                    <div id="meta-hora-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                                <div class="col-6">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Turno</span>
+                                    <div id="meta-turno-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="row grupo-cards" id="grupo5">
+        @foreach (var linha in grupo5)
+        {
+            <div class="col-xl-2-4">
+                <div class="card card-linha shadow-sm" onclick="window.location.href='/Fuji/Monitoramento?line=@linha'">
+                    <div class="card-body p-4 text-center">
+                        <div class="mb-2">
+                            <h2 class="fw-black m-0" style="font-size: 4.2rem; line-height: 1;">@linha</h2>
+                            <div class="d-flex justify-content-center gap-2 mt-2">
+                                <span id="badge-lado-@linha" class="badge-lado lado-bot shadow-sm">-</span>
+                                <span id="badge-pan-@linha" class="badge badge-pan d-flex align-items-center px-3">PAN: 1</span>
+                            </div>
+                        </div>
+
+                        <div class="emoji-container">
+                            <img id="gbot-@linha" src="/EMOJI/happy-emoji.gif" style="height: 100px; width: auto; object-fit: contain;" />
+                        </div>
+                        <div id="status-text-@linha" class="badge rounded-pill bg-dark mb-2 w-100">CARREGANDO...</div>
+
+                        <div class="mb-3">
+                            <div id="eficiencia-real-@linha" class="eficiencia-badge bg-secondary" style="font-size: 3.0rem;">0%</div>
+                        </div>
+
+                        <div class="marquee-container" style="margin: 5px 0;">
+                            <div class="marquee-text" id="prod-@linha" style="font-size: 1.5rem;">SINCRONIZANDO...</div>
+                        </div>
+
+                        <div class="box-meta-info p-2">
+                            <span class="label-andon" style="font-size: 2.0rem;">Total Acumulado</span>
+                            <div id="qtd-@linha" class="text-produzido" style="font-size: 2.8rem;">0</div>
+                            <div class="row mt-2 border-top border-secondary pt-2">
+                                <div class="col-6 border-end border-secondary">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Hora</span>
+                                    <div id="meta-hora-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                                <div class="col-6">
+                                    <span class="label-andon" style="font-size: 2.0rem;">Meta Turno</span>
+                                    <div id="meta-turno-@linha" class="text-meta-valor" style="font-size: 2.8rem;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="modalExtracaoLWS" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-robot me-2 text-warning"></i> EXTRAÇÃO LWS (PANASONIC)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted mb-4">Selecione o período desejado para a extração dos dados de produção:</p>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-uppercase">Data/Hora Início</label>
+                        <input type="datetime-local" id="lws_inicio" class="form-control form-control-lg border-2" step="60">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-uppercase">Data/Hora Fim</label>
+                        <input type="datetime-local" id="lws_fim" class="form-control form-control-lg border-2" step="60">
+                    </div>
+                </div>
+
+                <div id="lws-status-feedback" class="mt-3 d-none">
+                    <div class="alert alert-info d-flex align-items-center mb-0">
+                        <div class="spinner-border spinner-border-sm me-2"></div>
+                        <span>Processando extração, aguarde...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">CANCELAR</button>
+                <button type="button" class="btn btn-warning fw-bold px-4" onclick="executarExtracaoLWS()">
+                    <i class="bi bi-cloud-download me-1"></i> INICIAR EXTRAÇÃO
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalExtracaoUnificada" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-dark text-white" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-cloud-download me-2"></i> CENTRAL DE EXTRAÇÃO SMT</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <ul class="nav nav-tabs nav-fill bg-light" id="tabExtracao" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold text-success" id="nexim-tab" data-bs-toggle="tab" data-bs-target="#ext-nexim" type="button">SMT 1 e 8</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-success" id="fuji-tab" data-bs-toggle="tab" data-bs-target="#ext-fuji" type="button">SMT 6-9-10</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-4" id="conteudoTabExtracao">
+                    <div class="tab-pane fade show active" id="ext-nexim" role="tabpanel">
+                        <p class="text-muted small mb-3">Selecione os relatórios para processar (SMD1-8):</p>
+                        <div id="lista-nexim-check" class="list-group shadow-sm overflow-auto" style="max-height: 300px;">
+                            <div class="text-center p-3 text-muted">Buscando arquivos...</div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="ext-fuji" role="tabpanel">
+                        <p class="text-muted small mb-3">Selecione os relatórios para processar (SMD6-9-10):</p>
+                        <div id="lista-fuji-check" class="list-group shadow-sm overflow-auto" style="max-height: 300px;">
+                            <div class="text-center p-3 text-muted">Buscando arquivos...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="status-feedback-unificado" class="px-4 pb-3 d-none">
+                    <div class="alert alert-primary d-flex align-items-center mb-0">
+                        <div class="spinner-border spinner-border-sm me-3"></div>
+                        <div id="msg-status-unificado">Processando extrações, aguarde...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3" style="border-radius: 0 0 20px 20px;">
+                <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">CANCELAR</button>
+                <button type="button" class="btn btn-primary fw-black px-4 shadow-sm" onclick="executarExtracaoEmMassa()" id="btnExecutarMassa">
+                    <i class="bi bi-play-fill me-1"></i> INICIAR PROCESSAMENTO
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* MODAL CONFIGURAÇÃO *@
+<div class="modal fade" id="modalPainelMetas" tabindex="-1" aria-hidden="true">
+
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+
+        <div class="modal-content border-0 shadow-lg">
+
+            <div class="modal-header bg-dark text-white">
+
+                <h5 class="modal-title fw-bold"><i class="bi bi-table me-2"></i>PAINEL DE METAS SMT</h5>
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+
+            </div>
+
+            <div class="modal-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">LINHA</th>
+                                <th>PRODUTO ATUAL</th>
+                                <th width="100">LADO</th>
+                                <th width="150">META (UPH)</th>
+                                <th width="150">PANELIZAÇÃO</th>
+                                <th class="text-center">AÇÃO</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="corpoTabelaMetas">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer bg-light">
+
+                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">FECHAR</button>
+
+@*                 <button type="button" class="btn btn-success fw-bold px-4" onclick="salvarTodasMetas()">
+
+                    <i class="bi bi-check-all me-1"></i> SALVAR TUDO
+
+                </button> *@
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+
+        let intervalPagina;
+        let totalgrupos = 5;
+        const tempoTrocaAutomatica = 15000; // 15 segundos
+
+        function alternarPagina() {
+            $('.grupo-cards').removeClass('active');
+            grupoAtual = grupoAtual + 1;
+            if(grupoAtual>5)
+            {
+                grupoAtual =1;
+            }
+            $(`#grupo${grupoAtual}`).addClass('active');
+            $('#page-indicator').text(`PÁGINA ${grupoAtual} / ${totalgrupos}`);
+        }
+
+        function mudarPaginaManualmente(direcao) {
+            // Para o temporizador atual e reinicia
+            clearInterval(intervalPagina);
+
+            alternarPagina();
+
+            // Reinicia o ciclo automático
+            iniciarTrocaAutomatica();
+        }
+
+        function iniciarTrocaAutomatica() {
+            intervalPagina = setInterval(alternarPagina, tempoTrocaAutomatica);
+        }
+
+        $(document).ready(() => {
+                // Preload dos GIFs
+        const gifs = [
+            '/EMOJI/thinking-about.gif',
+            '/EMOJI/very-happy-emoji.gif',
+            '/EMOJI/happy-emoji.gif',
+            '/EMOJI/tired-emoji-emoji-tired.gif',
+            '/EMOJI/crying-emoji.gif'
+        ];
+        gifs.forEach(src => {
+            const img = new Image();
+            img.src = src;
+        });
+            atualizarTodasAsLinhas();
+            setInterval(atualizarTodasAsLinhas, 10000);
+            setInterval(() => $('#clock').text(new Date().toLocaleTimeString()), 1000);
+
+            // Inicia o carrossel automático
+            iniciarTrocaAutomatica();
+        });
+
+
+        let grupoAtual = 1;
+        const linhasAndon = ["SMD1", "SMD2", "SMD3", "SMD4", "SMD5", "SMD6","SMD7", "SMD8", "SMD9", "SMD10"];
+
+        // Modal Functions
+        function abrirModalMeta(linha) {
+            $('#modalLinhaNome').text(linha);
+            $('#inputLinha').val(linha);
+            $('#inputProduto').val($(`#prod-${linha}`).text());
+            $('#modalMeta').modal('show');
+        }
+
+        function salvarMeta() {
+            const data = {
+                linha: $('#inputLinha').val(), // Verifique se o ID é este mesmo
+                produto: $('#inputProduto').val(),
+                lado: $('#selectLado').val(), // Aqui deve ser o ID do seu select de lado
+                metaHora: $('#inputMeta').val(),
+                panelizacao: $('#inputPan').val()
+            };
+
+            $.post('/Fuji/SalvarMeta', data).done((res) => {
+                if (res.success) {
+                    // Feedback visual de sucesso antes de fechar
+                    console.log("Meta salva:", res.message);
+                    $('#modalMeta').modal('hide');
+                    atualizarTodasAsLinhas();
+                } else {
+                    alert("Aviso: " + res.message);
+                }
+            }).fail(() => alert("Erro crítico ao conectar com o servidor."));
+        }
+        function calcularDadosIndex(realizado, metaHora) {
+                    const agora = new Date();
+                    const minAtual = agora.getHours() * 60 + agora.getMinutes();
+                    let inicioTurno;
+
+                    if (minAtual >= 360 && minAtual < 840) inicioTurno = 360;
+                    else if (minAtual >= 840 && minAtual < 1320) inicioTurno = 840;
+                    else inicioTurno = (minAtual >= 1320) ? 1320 : (1320 - 1440);
+
+                    let decorrido = minAtual - inicioTurno;
+                    let tempoProducaoEfetiva = decorrido;
+                    if (decorrido > 240) tempoProducaoEfetiva -= 60;
+                    tempoProducaoEfetiva = Math.max(0, Math.min(tempoProducaoEfetiva, 420));
+
+                    const metaProporcional = (metaHora / 60) * tempoProducaoEfetiva;
+                    const ef = metaProporcional > 0 ? Math.round((realizado / metaProporcional) * 100) : 0;
+                    return { ef: ef };
+                }
+        // --- FUNÇÕES AUXILIARES DE CÁLCULO DE TEMPO ---
+
+        function tToM(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+        }
+
+        function calcularMetaTurnoDinamica(res, metaHora) {
+            const agora = new Date();
+            const minAtual = agora.getHours() * 60 + agora.getMinutes();
+            const diaSemana = agora.getDay();
+            const diasMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            const hojeProp = diasMap[diaSemana];
+
+            // 1. Identificar horários do turno atual que veio do banco
+            let mIni = 0, mFim = 0;
+
+            // Lógica de identificação de turno baseada nos horários configurados
+            const t1I = tToM(res.t1Inicio), t1F = tToM(res.t1Fim);
+            const t2I = tToM(res.t2Inicio), t2F = tToM(res.t2Fim);
+            const t3I = tToM(res.t3Inicio), t3F = tToM(res.t3Fim);
+
+            if (minAtual >= t1I && minAtual < t1F) { mIni = t1I; mFim = t1F; }
+            else if (minAtual >= t2I && minAtual < t2F) { mIni = t2I; mFim = t2F; }
+            else { mIni = t3I; mFim = t3F; }
+
+            // 2. Duração Total do Turno (Tratando virada de meia-noite)
+            let duracaoTotal = mFim - mIni;
+            if (duracaoTotal < 0) duracaoTotal += 1440;
+
+            // 3. Somar descontos das paradas programadas para HOJE dentro deste turno
+            let desconto = 0;
+            if (res.paradasProgramadas && res.paradasProgramadas.length > 0) {
+                res.paradasProgramadas.forEach(p => {
+                    // Verifica se a parada está marcada para o dia de hoje (ex: p.seg === true)
+                    if (p[hojeProp] === true) {
+                        let pIni = tToM(p.inicio);
+                        let pFim = tToM(p.fim);
+                        let pDur = pFim - pIni;
+                        if (pDur < 0) pDur += 1440;
+
+                        // Cálculo de intersecção (Overlap) entre Turno e Parada
+                        let overlaps = [
+                            { s: pIni, e: pIni + pDur },
+                            { s: pIni + 1440, e: pIni + pDur + 1440 },
+                            { s: pIni - 1440, e: pIni + pDur - 1440 }
+                        ];
+
+                        overlaps.forEach(over => {
+                            let startMax = Math.max(mIni, over.s);
+                            let endMin = Math.min(mIni + duracaoTotal, over.e);
+                            let intersection = endMin - startMax;
+                            if (intersection > 0) desconto += intersection;
+                        });
+                    }
+                });
+            }
+
+            const minutosProdutivos = duracaoTotal - desconto;
+            return Math.round((metaHora / 60) * minutosProdutivos);
+        }
+
+        // --- FUNÇÕES PRINCIPAIS ---
+
+        async function atualizarTodasAsLinhas() {
+                    for (const linha of linhasAndon) {
+                        try {
+                            const res = await $.get(`/Fuji/ObterStatusAtual?line=${linha}`);
+                            if (res) {
+                                const metaHoraNominal = res.meta || 0;
+                                const metaTurnoReal = res.metaDia || 0;         // Meta real do dia (ex: 700)
+                                const metaProporcional = res.metaAteAgora || 0;
+                                const panelizacao = res.panelizacao || 1;
+                                const mHora = res.meta || 0;
+                                const produzidoReal = res.produzidoHora || 0 * panelizacao;
+
+                                // 1. Badges e Lado (Mantendo suas cores)
+                                $(`#badge-lado-${linha}`).text(res.lado === 'B' ? 'BOTTOM' : 'TOP')
+                                    .removeClass('bg-primary bg-warning text-dark')
+                                    .addClass(res.lado === 'T' ? 'bg-primary' : 'bg-warning text-dark');
+
+                
+
+                                $(`#prod-${linha}`).text(res.produto || "---");
+                                $(`#qtd-${linha}`).text(produzidoReal);
+                                $(`#meta-hora-${linha}`).text(metaHoraNominal);
+                                $(`#badge-pan-${linha}`).text('x'+ panelizacao);
+                                $(`#meta-turno-${linha}`).text(metaTurnoReal); // Exibe a meta justa com desconto de almoço
+
+        // 3. Eficiência e GIFs Animados
+        const info = calcularDadosIndex(produzidoReal, mHora);
+        const badgeEf = $(`#eficiencia-real-${linha}`);
+        const gbotImg = $(`#gbot-${linha}`); // Seleciona a imagem da linha
+        const qtdAcumulada = $(`#qtd-${linha}`);
+
+
+        badgeEf.text(info.ef + "%").removeClass('bg-secondary bg-vibrant-green bg-vibrant-orange bg-vibrant-red');
+
+        // LÓGICA DE PRIORIDADE: PARADA EM ABERTO
+        if (res.paradaEmAberto) {
+            gbotImg.attr('src', '/EMOJI/thinking-about.gif');
+            badgeEf.addClass('bg-vibrant-red');
+            qtdAcumulada.css('color', '#ef4444');
+        }
+        // LÓGICA POR EFICIÊNCIA
+        else if (info.ef >= 95) {
+            gbotImg.attr('src', '/EMOJI/very-happy-emoji.gif');
+            badgeEf.addClass('bg-vibrant-green');
+            qtdAcumulada.css('color', '#10b981');
+        }
+        else if (info.ef >= 85) {
+            gbotImg.attr('src', '/EMOJI/happy-emoji.gif');
+            badgeEf.addClass('bg-vibrant-green');
+            qtdAcumulada.css('color', '#10b981');
+        }
+        else if (info.ef >= 80) {
+            gbotImg.attr('src', '/EMOJI/tired-emoji-emoji-tired.gif');
+            badgeEf.addClass('bg-vibrant-orange');
+            qtdAcumulada.css('color', '#f59e0b');
+        }
+        else {
+            gbotImg.attr('src', '/EMOJI/crying-emoji.gif');
+            badgeEf.addClass('bg-vibrant-red');
+            qtdAcumulada.css('color', '#ef4444');
+        }
+
+                                // 4. CORREÇÃO DO BADGE DE STATUS (Preservando rounded-pill e w-100)
+                                const st = $(`#status-text-${linha}`);
+                                st.removeClass('bg-dark bg-success bg-danger'); // Remove apenas as cores
+
+                                if (res.paradaEmAberto) {
+                                    st.text(res.motivoParada || "PARADA").addClass('bg-danger');
+                                } else {
+                                    st.text("PRODUZINDO").addClass('bg-success');
+                                }
+                            }
+                        } catch (e) { console.error(e); }
+                    }
+                }
+
+                // Abre a modal e monta a tabela com os dados que já estão na tela
+        async function abrirPainelMetas() {
+            const corpo = $('#corpoTabelaMetas');
+            corpo.empty();
+
+            // Ordenação Natural (SMD1, SMD2... SMD10)
+            const linhasOrdenadas = [...linhasAndon].sort((a, b) => {
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            // Usamos for...of para manter a ordem sequencial durante as requisições async
+            for (const linha of linhasOrdenadas) {
+                try {
+                    const res = await $.get(`/Fuji/ObterStatusAtual?line=${linha}`);
+
+                    const produto = res.produto || "---";
+                    const lado = res.lado || "B"; // Baseado no seu log, padrão B
+                    const metaAtual = res.meta || 0;
+                    const panAtual = res.panelizacao || 1;
+
+        corpo.append(`
+            <tr data-linha="${linha}">
+                <td class="ps-4 fw-bold text-primary" style="font-family: 'Segoe UI', sans-serif; font-size: 1.1rem; letter-spacing: 0.5px;">${linha}</td>
+                <td class="align-middle">
+                    <span class="fw-bold text-secondary" style="font-family: 'Segoe UI', sans-serif; font-size: 1.1rem; letter-spacing: 0.5px;">
+                        ${produto || '---'}
+                    </span>
+                    <input type="hidden" class="input-prod" value="${produto}">
+                </td>
+                <td class="text-center">
+                    <span class="badge ${lado === 'T' ? 'bg-secondary' : 'bg-secondary'} text-uppercase"
+                          style="font-size: 0.9rem; min-width: 80px;">
+                        ${lado === 'T' ? 'TOP' : 'BOTTOM'}
+                    </span>
+                    <input type="hidden" class="input-lado" value="${lado}">
+                </td>
+                <td><input type="number" class="form-control form-control-sm input-meta" value="${metaAtual}"></td>
+                <td><input type="number" class="form-control form-control-sm input-pan" value="${panAtual}"></td>
+                <td class="text-center">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary btn-save-row" title="Salvar Meta" onclick="salvarLinhaUnica('${linha}', this)">
+                            <i class="bi bi-save"></i>
+                        </button>
+
+                        <a href="/Configuracao/Index?linha=${linha}" class="btn btn-sm btn-outline-danger" title="Configurar Turnos e Takt">
+                            <i class="bi bi-gear-fill"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        `);
+                } catch (err) {
+                    console.error(`Erro ao carregar dados da linha ${linha}:`, err);
+                }
+            }
+
+            $('#modalPainelMetas').modal('show');
+        }
+
+
+        // Salva linha por linha (em massa)
+
+        async function salvarTodasMetas() {
+            const promises = [];
+
+            $('#corpoTabelaMetas tr').each(function() {
+                const linha = $(this).find('.input-prod').data('linha');
+                const data = {
+                    linha: linha,
+                    produto: $(this).find('.input-prod').val(),
+                    lado: $(this).find('.input-lado').val(), // Capturando o Lado selecionado
+                    metaHora: parseInt($(this).find('.input-meta').val()) || 0,
+                    panelizacao: parseInt($(this).find('.input-pan').val()) || 1
+                };
+
+                promises.push($.post('/Fuji/SalvarMeta', data));
+            });
+
+            try {
+                await Promise.all(promises);
+                alert("Todas as metas foram atualizadas com sucesso!");
+                $('#modalPainelMetas').modal('hide');
+                atualizarTodasAsLinhas();
+            } catch (e) {
+                alert("Erro ao salvar algumas metas. Verifique a conexão.");
+            }
+        }
+
+
+        // Função auxiliar para salvar apenas uma linha da tabela
+        function salvarLinhaUnica(linha, btn) {
+            const row = $(btn).closest('tr');
+
+            // Captura os dados da linha específica
+            const data = {
+                linha: linha,
+                produto: row.find('.input-prod').val(),
+                lado: row.find('.input-lado').val(), // Pega T ou B do select
+                metaHora: parseInt(row.find('.input-meta').val()) || 0,
+                panelizacao: parseInt(row.find('.input-pan').val()) || 1
+            };
+
+            console.log("Enviando dados:", data); // Verifique no F12 se o lado aparece aqui
+
+            $.post('/Fuji/SalvarMeta', data).done((res) => {
+                if(res.success) {
+                    $(btn).removeClass('btn-outline-primary').addClass('btn-success');
+                    setTimeout(() => $(btn).removeClass('btn-success').addClass('btn-outline-primary'), 2000);
+                    // Opcional: atualizarTodasAsLinhas();
+                } else {
+                    alert("Erro: " + res.message);
+                }
+            }).fail(() => alert("Erro ao conectar com o servidor."));
+        }
+                // Função para chamar o robô Playwright via Controller
+        // function dispararExtracaoLWS() {
+        //     const btn = $('#btnExtrairLWS');
+        //     const originalText = btn.html();
+
+        //     // Feedback visual e trava o botão para evitar cliques duplos
+        //     btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> EXTRAINDO...');
+
+        //     $.ajax({
+        //         url: '/Fuji/ExecutarRoboLWS',
+        //         type: 'POST',
+        //         timeout: 120000, // 2 minutos (Robô LWS é lento)
+        //         success: function (res) {
+        //             if (res.success) {
+        //                 alert("Sucesso! O relatório foi extraído e o Worker irá processar os dados.");
+        //                 if (typeof atualizarTodasAsLinhas === "function") {
+        //                     atualizarTodasAsLinhas();
+        //                 }
+        //             } else {
+        //                 // Aqui pegamos erros tratados no C# (ex: erro de login)
+        //                 alert("Erro no Robô: " + res.message);
+        //             }
+        //         },
+        //         error: function (xhr, status, error) {
+        //             // Aqui pegamos o Erro 500 (Crash do Playwright ou IIS)
+        //             console.error("Detalhes do Erro:", xhr.responseText);
+
+        //             let msgErro = "Erro crítico no servidor.";
+        //             if (xhr.status === 500) {
+        //                 msgErro += "\nPossível falha: Playwright não instalado ou permissão de pasta no SRV-LC01.";
+        //             } else if (status === 'timeout') {
+        //                 msgErro = "O robô demorou demais para responder (Timeout).";
+        //             }
+
+        //             alert(msgErro + "\n\nVerifique o console (F12) para detalhes.");
+        //         },
+        //         complete: function () {
+        //             btn.prop('disabled', false).html(originalText);
+        //         }
+        //     });
+        // }
+
+        function dispararExtracaoLWS() {
+            const agora = new Date();
+
+            // 1. Configura a Data de Hoje às 06:00
+            const hojeSeis = new Date();
+            hojeSeis.setHours(6, 0, 0, 0);
+
+            // 2. Configura a Data de Ontem às 06:00
+            const ontemSeis = new Date();
+            ontemSeis.setDate(agora.getDate() - 1);
+            ontemSeis.setHours(6, 0, 0, 0);
+
+            // 3. Formata para o padrão exigido pelo input datetime-local (YYYY-MM-DDTHH:mm)
+            // Usamos o ajuste de fuso horário local para não dar erro de horas a mais/menos
+            const formatarData = (data) => {
+                const z = n => (n < 10 ? '0' : '') + n;
+                return `${data.getFullYear()}-${z(data.getMonth() + 1)}-${z(data.getDate())}T${z(data.getHours())}:${z(data.getMinutes())}`;
+            };
+
+            // 4. Aplica os valores nos inputs
+            $('#lws_inicio').val(formatarData(ontemSeis)); // Ontem às 06:00
+            $('#lws_fim').val(formatarData(hojeSeis));     // Hoje às 06:00
+
+            // 5. Abre a modal
+            $('#modalExtracaoLWS').modal('show');
+        }
+
+        function executarExtracaoLWS() {
+        const dataInicio = document.getElementById('lws_inicio').value;
+            const dataFim = document.getElementById('lws_fim').value;
+
+            if (!dataInicio || !dataFim) {
+                alert("Selecione data e hora de início e fim.");
+                return;
+            }
+
+            // Feedback visual
+            $('#lws-status-feedback').removeClass('d-none');
+            $('.btn-warning').attr('disabled', true);
+
+            const payload = {
+                inicio: dataInicio,
+                fim: dataFim,
+                usuario: "@usuario"
+            };
+
+            // AJUSTE AQUI: O nome da Action deve ser 'ExecutarRoboLWS'
+            // E certifique-se que o controller é 'Fuji'. Se o arquivo for FujiController.cs, use /Fuji/
+            $.post('/Fuji/ExecutarRoboLWS', payload)
+                .done((res) => {
+                    if (res.success) {
+                        alert("Extração concluída com sucesso!");
+                        $('#modalExtracaoLWS').modal('hide');
+                    } else {
+                        alert("Aviso: " + res.message);
+                    }
+                })
+                .fail((xhr, status, error) => {
+                    // Log mais detalhado no console para você debugar
+                    console.error("Erro detalhes:", xhr.responseText);
+                    alert("Erro crítico de comunicação. Verifique se a rota /Fuji/ExecutarRoboLWS existe.");
+                })
+                .always(() => {
+                    $('#lws-status-feedback').addClass('d-none');
+                    $('.btn-warning').attr('disabled', false);
+                });
+        }
+
+
+        // function dispararExtracaoFuji() {
+        //     const btn = $('#btnExtrairFuji');
+        //     const originalText = btn.html();
+
+        //     btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> PROCESSANDO LINHAS...');
+
+        //     $.ajax({
+        //         url: '/Fuji/ExecutarRoboFuji',
+        //         type: 'POST',
+        //         success: function (res) {
+        //             if (res.success) {
+        //                 // Exibe mensagem informando quais arquivos foram criados em C:\Reports
+        //                 alert(res.message);
+        //                 if (typeof atualizarTodasAsLinhas === "function") {
+        //                     atualizarTodasAsLinhas();
+        //                 }
+        //             } else {
+        //                 alert("Aviso: " + res.message);
+        //             }
+        //         },
+        //         error: function (xhr) {
+        //             alert("Erro ao conectar com o servidor para processar o XML da Fuji.");
+        //         },
+        //         complete: function () {
+        //             btn.prop('disabled', false).html(originalText);
+        //         }
+        //     });
+        // }
+
+        // $(document).ready(() => {
+        //     atualizarTodasAsLinhas();
+        //     setInterval(atualizarTodasAsLinhas, 10000);
+        //     setInterval(() => $('#clock').text(new Date().toLocaleTimeString()), 1000);
+
+        // });
+
+
+        // Função chamada pelo botão "EXTRAIR FUJI"
+        function dispararExtracaoFuji() {
+            const select = $('#fuji_arquivo_select');
+            select.html('<option value="">Buscando arquivos no servidor...</option>');
+
+            // Abre a modal primeiro para dar feedback visual
+            $('#modalExtracaoFuji').modal('show');
+
+            // Busca a lista de arquivos .xml que começam com "PUS"
+            $.get('/Fuji/ObterArquivosDisponiveis')
+                .done(function (arquivos) {
+                    if (arquivos && arquivos.length > 0) {
+                        select.html('<option value="">Selecione um relatório...</option>');
+                        arquivos.forEach(arq => {
+                            // Formata o nome do arquivo para algo legível: PUS20260416... -> 16/04/2026
+                            let dataFormatada = formatarNomeArquivoFuji(arq);
+                            select.append(`<option value="${arq}">${dataFormatada} (${arq})</option>`);
+                        });
+                    } else {
+                        select.html('<option value="">Nenhum arquivo encontrado na pasta</option>');
+                    }
+                })
+                .fail(function () {
+                    select.html('<option value="">Erro ao conectar com o serviço de arquivos</option>');
+                });
+        }
+
+        function formatarNomeArquivoFuji(nome) {
+            if(nome.length < 11) return nome;
+            // Exemplo: PUS20260416...
+            const ano = nome.substring(3, 7);
+            const mes = nome.substring(7, 9);
+            const dia = nome.substring(9, 11);
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Quando clicar em Iniciar Robô na Modal
+        function executarExtracaoFuji() {
+            const arquivo = $('#fuji_arquivo_select').val();
+            // Você precisa pegar o valor da linha de algum lugar (ex: um select de linha ou variável global)
+            const linha = $('#fuji_linha_select').val() || "SMD6";
+
+            if (!arquivo) {
+                alert("Por favor, selecione um arquivo da lista.");
+                return;
+            }
+
+            $('#fuji-status-feedback').removeClass('d-none');
+
+            // Alinhando com o Controller:
+            // Rota: /Fuji/ProcessarSelecaoModal
+            // Parâmetros: nomeArquivo e linha
+            $.post('/Fuji/ProcessarSelecaoModal', {
+                nomeArquivo: arquivo,
+                linha: linha
+            })
+            .done(function (res) {
+                if (res.success) {
+                    alert("Sucesso: " + res.message);
+                    // Se o controller retornar o nome do arquivo, você pode até oferecer o download aqui
+                    $('#modalExtracaoFuji').modal('hide');
+                } else {
+                    alert("Erro: " + res.message);
+                }
+            })
+            .fail(function (xhr) {
+                alert("Erro técnico ao processar o arquivo XML: " + xhr.statusText);
+            })
+            .always(function () {
+                $('#fuji-status-feedback').addClass('d-none');
+            });
+        }
+
+
+        // --- LÓGICA NEXIM (SMD1 e SMD8) ---
+        function dispararExtracaoNexim() {
+            console.log("Iniciando abertura da Modal Nexim...");
+
+            const modalEl = document.getElementById('modalExtracaoNexim');
+            const modalNexim = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+            const select = $('#nexim_arquivo_select');
+
+            // 1. Limpa o select e coloca o estado inicial de carregamento
+            select.empty().append('<option value="">Buscando ficheiros no servidor Nexim...</option>');
+
+            // 2. Abre a modal via JS (Agora sem conflito com data-attributes)
+            modalNexim.show();
+
+            // 3. Busca a lista de arquivos no IP 172.20.100.4
+            $.get('/Fuji/ObterArquivosNeximDisponiveis')
+                .done(function (arquivos) {
+                    console.log("Preenchendo select com arquivos:", arquivos);
+                    select.empty();
+
+                    if (arquivos && arquivos.length > 0) {
+                        select.append('<option value="">Selecione um relatório Nexim...</option>');
+
+                        $.each(arquivos, function(i, arq) {
+                            // Usamos o formatador para a data e pegamos o final do nome (SMD1/SMD8)
+                            let dataFormatada = formatarNomeArquivoNexim(arq);
+                            let identificadorLinha = arq.split('_').pop().replace('.xlsx', '');
+
+                            select.append($('<option>', {
+                                value: arq,
+                                text: `${dataFormatada} | ${identificadorLinha}`
+                            }));
+                        });
+                    } else {
+                        select.append('<option value="">Nenhum ficheiro encontrado na pasta Auto</option>');
+                    }
+                })
+                .fail(function (xhr) {
+                    console.error("Erro na rota Nexim:", xhr.status);
+                    select.empty().append('<option value="">Erro de conexão com o servidor Nexim</option>');
+                });
+        }
+
+        // Formatador exclusivo para o padrão Nexim: 20260416...
+        function formatarNomeArquivoNexim(nome) {
+            try {
+                const ano = nome.substring(0, 4);
+                const mes = nome.substring(4, 6);
+                const dia = nome.substring(6, 8);
+                return `${dia}/${mes}/${ano}`;
+            } catch (e) { return nome; }
+        }
+
+        function executarExtracaoNexim() {
+            const arquivo = $('#nexim_arquivo_select').val();
+
+            if (!arquivo) {
+                alert("Por favor, selecione um arquivo da lista.");
+                return;
+            }
+
+            $('#nexim-status-feedback').removeClass('d-none');
+            $('#btnExecutarNexim').prop('disabled', true);
+
+            $.post('/Fuji/ProcessarExtracaoNexim', { arquivoSelecionado: arquivo })
+                .done(function (res) {
+                    if (res.success) {
+                        alert("Sucesso: " + res.message);
+                        // Fecha a modal usando a instância do Bootstrap 5
+                        bootstrap.Modal.getInstance(document.getElementById('modalExtracaoNexim')).hide();
+                    } else {
+                        alert("Erro: " + res.message);
+                    }
+                })
+                .fail(function () {
+                    alert("Erro técnico ao processar o arquivo Nexim.");
+                })
+                .always(function () {
+                    $('#nexim-status-feedback').addClass('d-none');
+                    $('#btnExecutarNexim').prop('disabled', false);
+                });
+        }
+
+
+          function abrirCentralExtracao() {
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalExtracaoUnificada'));
+            modal.show();
+
+            // --- CARREGAR NEXIM ---
+            $.get('/Fuji/ObterArquivosNeximDisponiveis').done(arquivos => {
+                const container = $('#lista-nexim-check').empty();
+                arquivos.forEach(arq => {
+                    const dataF = formatarNomeArquivoNexim(arq);
+
+                    // Simplificação do nome (Ex: SMD1, SMD8)
+                    let nomeSimplificado = "NEXIM";
+                    if (arq.includes("_")) {
+                        let partes = arq.split('_');
+                        nomeSimplificado = partes[partes.length - 1].replace('.xlsx', '');
+                    }
+
+                    container.append(`
+                        <label class="list-group-item d-flex gap-2 align-items-center">
+                            <input class="form-check-input flex-shrink-0 chk-nexim" type="checkbox" value="${arq}">
+                            <div class="d-flex justify-content-between w-100">
+                                <strong class="text-primary">${dataF}</strong>
+                                <span class="badge bg-dark opacity-75">${nomeSimplificado}.XLSX</span>
+                            </div>
+                        </label>`);
+                });
+            });
+
+            // --- CARREGAR FUJI (XML) ---
+            $.get('/Fuji/ObterArquivosDisponiveis').done(arquivos => {
+                const container = $('#lista-fuji-check').empty();
+                arquivos.forEach(arq => {
+                    let exibicaoData = "Data N/A";
+
+                    // Extrai Data do PUS20260415...
+                    if (arq.startsWith("PUS") && arq.length >= 11) {
+                        const ano = arq.substring(3, 7);
+                        const mes = arq.substring(7, 9);
+                        const dia = arq.substring(9, 11);
+                        exibicaoData = `${dia}/${mes}/${ano}`;
+                    }
+
+                    container.append(`
+                        <label class="list-group-item d-flex gap-2 align-items-center">
+                            <input class="form-check-input flex-shrink-0 chk-fuji" type="checkbox" value="${arq}">
+                            <div class="d-flex justify-content-between w-100">
+                                <strong class="text-primary">${exibicaoData}</strong>
+                                <span class="badge bg-dark opacity-75">SMT6-9-10.XML</span>
+                            </div>
+                        </label>`);
+                });
+            });
+        }
+
+        async function executarExtracaoEmMassa() {
+            const neximSelecionados = $('.chk-nexim:checked').map((i, el) => el.value).get();
+            const fujiSelecionados = $('.chk-fuji:checked').map((i, el) => el.value).get();
+
+            if (neximSelecionados.length === 0 && fujiSelecionados.length === 0) {
+                alert("Selecione ao menos um arquivo.");
+                return;
+            }
+
+            $('#status-feedback-unificado').removeClass('d-none');
+            $('#btnExecutarMassa').prop('disabled', true);
+
+            // Processar NEXIM um por um
+            for (let arq of neximSelecionados) {
+                $('#msg-status-unificado').text(`Processando Nexim: ${arq}...`);
+                await $.post('/Fuji/ProcessarExtracaoNexim', { arquivoSelecionado: arq });
+            }
+
+            // Processar FUJI um por um
+            for (let arq of fujiSelecionados) {
+                $('#msg-status-unificado').text(`Processando Fuji: ${arq}...`);
+                await $.post('/Fuji/ProcessarSelecaoModal', { nomeArquivo: arq });
+            }
+
+            alert("Todas as extrações foram concluídas!");
+            location.reload(); // Recarrega para atualizar os dados na tela
+        }
+
+    </script>
+}

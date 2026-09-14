@@ -1,0 +1,276 @@
+﻿@model List<Diario_de_Bordo.Models.Report>
+
+<link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap4.min.css" />
+<link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.css" />
+
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.95);
+    }
+
+    /* Estilo de Linhas Espaçadas (Cartões) */
+    #tabelaDiario {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        background: transparent !important;
+    }
+
+        #tabelaDiario thead th {
+            border: none;
+            padding-left: 15px;
+        }
+
+        #tabelaDiario tbody tr {
+            background-color: white !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+            #tabelaDiario tbody tr:hover {
+                transform: scale(1.005);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                background-color: #f8fbff !important;
+            }
+
+        #tabelaDiario td {
+            padding: 12px 15px;
+            border: none !important;
+        }
+
+            #tabelaDiario td:first-child {
+                border-radius: 8px 0 0 8px;
+            }
+
+            #tabelaDiario td:last-child {
+                border-radius: 0 8px 8px 0;
+            }
+
+    .badge-class {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+
+    .bg-corretiva {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    .bg-preventiva {
+        background-color: #e0f2fe;
+        color: #0284c7;
+    }
+
+    .bg-ajuste {
+        background-color: #fef9c3;
+        color: #854d0e;
+    }
+
+    .col-id-hidden {
+        display: none;
+    }
+
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    .extra-small {
+        font-size: 0.65rem;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-dark">Diário de Bordo</h2>
+            <p class="text-muted small mb-0">Gerenciamento de intervenções e manutenções em tempo real.</p>
+        </div>
+        <a asp-action="Nova" class="btn btn-primary shadow-sm px-4 py-2">
+            <i class="bi bi-plus-lg me-2"></i>Nova Atividade
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table id="tabelaDiario" class="table align-middle">
+            <thead>
+                <tr class="text-secondary small">
+                    <th class="col-id-hidden">ID</th>
+                    <th>TÉCNICO</th>
+                    <th>LINHA/MÁQUINA</th>
+                    <th>CLASSIFICAÇÃO</th>
+                    <th>HORÁRIOS</th>
+                    <th>DESCRIÇÃO</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    // Ajuste de fuso: Se no banco está correto, AddHours(0).
+                    // Se estiver adiantado, use AddHours(-4).
+                    var inicio = r.inicio;
+                    var fim = r.fim;
+
+                    string classeCor = r.classificacao?.ToLower() switch
+                    {
+                        "corretiva" => "bg-corretiva",
+                        "preventiva" => "bg-preventiva",
+                        _ => "bg-ajuste"
+                    };
+
+                    <tr class="linha-relatorio" data-id="@r.report_id">
+                        <td class="col-id-hidden">@r.report_id</td>
+                        <td>
+                            <div class="fw-bold text-dark data-tecnico">@r.technician</div>
+                            <span class="text-muted extra-small">ID #@r.report_id</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="icon-sm bg-light rounded p-2 me-2">
+                                    <i class="bi bi-cpu text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold data-linha">@r.linha</div>
+                                    <div class="text-muted small data-maquina">@r.maquina</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-class @classeCor">@r.classificacao</span>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <i class="bi bi-clock-history me-1 text-success"></i>
+                                <span class="data-inicio">@inicio.ToString("dd/MM HH:mm")</span>
+                            </div>
+                            <div class="small text-muted">
+                                <i class="bi bi-clock me-1 text-danger"></i>
+                                <span class="data-fim">@fim.ToString("dd/MM HH:mm")</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="text-truncate data-descricao" style="max-width: 250px;" title="@r.descricao">
+                                @r.descricao
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* MODAL DE DETALHES *@
+<div class="modal fade" id="detalhesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-dark text-white border-0" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Detalhes do Registro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <div class="bg-white p-3 rounded-4 shadow-sm h-100">
+                            <label class="text-muted small fw-bold text-uppercase">Descrição Técnica</label>
+                            <p id="det-descricao" class="mt-2 text-dark" style="white-space: pre-wrap;"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="bg-white p-3 rounded-4 shadow-sm mb-3">
+                            <div class="mb-2">
+                                <small class="text-muted d-block">Técnico Responsável</small>
+                                <span id="det-tecnico" class="fw-bold"></span>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted d-block">Equipamento</small>
+                                <span id="det-maquina" class="fw-bold"></span> (<span id="det-linha"></span>)
+                            </div>
+                        </div>
+                        <div class="bg-white p-3 rounded-4 shadow-sm">
+                            <div class="mb-2">
+                                <small class="text-muted d-block">Início</small>
+                                <span id="det-inicio" class="text-success fw-semibold"></span>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block">Conclusão</small>
+                                <span id="det-fim" class="text-danger fw-semibold"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="bg-white p-3 rounded-4 shadow-sm">
+                            <label class="text-muted small fw-bold text-uppercase d-block mb-3">Evidências e Fotos</label>
+                            <div id="det-evidencias" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/js/dataTables.bootstrap4.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            const tabela = $('#tabelaDiario').DataTable({
+                // ORDENAÇÃO: Índice 0 (Report ID), Ordem 'desc' (Decrescente)
+                order: [[0, 'desc']],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+                },
+                columnDefs: [{
+                        targets: [0],
+                        visible: false,
+                        type: 'num', // <--- FORÇA O TIPO NUMÉRICO AQUI
+                        searchable: false
+                }],
+                dom: '<"d-flex justify-content-between mb-3"f>rt<"d-flex justify-content-between mt-3"ip>'
+            });
+
+            // Clique na linha para abrir o modal
+            $('#tabelaDiario tbody').on('click', 'tr', function () {
+                const row = $(this);
+
+                // Popula os campos do modal
+                $('#det-tecnico').text(row.find('.data-tecnico').text());
+                $('#det-linha').text(row.find('.data-linha').text());
+                $('#det-maquina').text(row.find('.data-maquina').text());
+                $('#det-inicio').text(row.find('.data-inicio').text());
+                $('#det-fim').text(row.find('.data-fim').text());
+                $('#det-descricao').text(row.find('.data-descricao').attr('title'));
+
+                const id = row.data('id');
+                const divEvid = $('#det-evidencias').html('<div class="spinner-border spinner-border-sm text-primary"></div>');
+
+                // AJAX para buscar fotos/PDFs
+                fetch(`/Diario/ObterEvidencias?id=${id}`)
+                    .then(r => r.json())
+                    .then(evidencias => {
+                        divEvid.empty();
+                        if (!evidencias || evidencias.length === 0) {
+                            divEvid.html('<span class="text-muted small">Nenhum anexo disponível.</span>');
+                            return;
+                        }
+                        evidencias.forEach(e => {
+                            const isPdf = e.file_name.toLowerCase().endsWith('.pdf');
+                            const content = isPdf
+                                ? `<div class="bg-light border rounded p-2 text-center" style="width:80px;height:80px"><i class="bi bi-file-pdf text-danger h2"></i></div>`
+                                : `<img src="${e.file_url}" class="rounded shadow-sm" style="width:80px;height:80px;object-fit:cover">`;
+
+                            $(`<div class="cursor-pointer" onclick="window.open('${e.file_url}', '_blank')">${content}</div>`).appendTo(divEvid);
+                        });
+                    })
+                    .catch(() => divEvid.html('<span class="text-danger">Erro ao carregar arquivos.</span>'));
+
+                new bootstrap.Modal(document.getElementById('detalhesModal')).show();
+            });
+        });
+    </script>
+}

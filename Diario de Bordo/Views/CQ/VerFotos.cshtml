@@ -1,0 +1,22 @@
+﻿@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "Fotos do Posto";
+}
+
+<h2>@ViewData["Title"]</h2>
+<a onclick="history.back()" class="btn btn-secondary mb-3">Voltar</a>
+
+<div class="row">
+    @foreach (var foto in Model)
+    {
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <img src="@Url.Action("AbrirEvidencia", "CQ", new { id = foto.id })" class="card-img-top" />
+                <div class="card-body">
+                    <p class="card-text">@System.IO.Path.GetFileName(foto.evidencia)</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

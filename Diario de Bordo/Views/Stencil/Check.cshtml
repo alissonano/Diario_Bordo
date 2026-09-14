@@ -1,0 +1,233 @@
+﻿@model Diario_de_Bordo.Models.StencilCheckViewModel
+
+@{
+    ViewData["Title"] = "Checagem de Stencil";
+}
+
+<div class="container mt-3">
+    <h3>Stencil: @Model.StencilNumber</h3>
+
+    <div class="mt-3 mb-3">
+        <form asp-action="RegisterCheck" method="post">
+            <input type="hidden" name="StencilId" value="@Model.StencilId" />
+            <button type="submit" class="btn btn-primary">➕ Nova Checagem</button>
+        </form>
+    </div>
+
+    <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light text-center">
+            <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Status</th>
+                <th>Check 1</th>
+                <th>Check 2</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var check in Model.ChecksHistory)
+            {
+                <tr>
+                    <td>@check.id</td>
+                    <td>@check.check_date.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@check.status</td>
+                    <td>@(string.IsNullOrEmpty(check.check1) ? "-" : check.check1)</td>
+                    <td>@(string.IsNullOrEmpty(check.check2) ? "-" : check.check2)</td>
+                    <td class="text-center" style="min-width: 160px;">
+                        <div class="d-flex flex-column gap-1">
+                            <button type="button" class="btn btn-sm btn-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalCheck"
+                                    data-checkid="@check.id"
+                                    data-evidences="@check.evidence_unc">
+                                Realizar Check
+                            </button>
+
+                            @if (!string.IsNullOrEmpty(check.evidence_unc) || !string.IsNullOrEmpty(check.log))
+                            {
+                                <button type="button" class="btn btn-sm btn-warning"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEvidences"
+                                        data-evidences="@check.evidence_unc"
+                                        data-log="@check.log">
+                                    Ver Evidências
+                                </button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Realizar Check -->
+<div class="modal fade" id="modalCheck" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form asp-action="SubmitCheck" method="post" enctype="multipart/form-data">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">Registrar Check</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" id="CheckId" name="CheckId" />
+                    <input type="hidden" id="CheckType" name="CheckType" />
+
+                    <div class="mb-2" id="checkSelectDiv">
+                        <label for="CheckSelect" class="form-label">Selecione o Check</label>
+                        <select id="CheckSelect" class="form-select" required></select>
+                    </div>
+
+                    <div class="mb-2" id="decisionDiv" style="display:none;">
+                        <label for="Decision" class="form-label">Julgamento</label>
+                        <select id="Decision" name="Decision" class="form-select">
+                            <option value="">Selecione</option>
+                            <option value="Liberado">Liberado</option>
+                            <option value="Reprovado">Reprovado</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="Comentario" class="form-label">Comentário</label>
+                        <textarea id="Comentario" name="Comentario" class="form-control" rows="3" required></textarea>
+                    </div>
+
+                    <hr />
+
+                    <!-- Galeria de imagens já existentes -->
+                    <div id="existingGallery" class="row g-2 mb-3">
+                        <p class="text-muted text-center">Sem evidências anteriores.</p>
+                    </div>
+
+                    <!-- Upload de novas evidências -->
+                    <div class="mb-2">
+                        <label for="Files" class="form-label">Anexar novas evidências</label>
+                        <input id="Files" name="Files" type="file" class="form-control" accept="image/*" capture="environment" multiple />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Salvar Check</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualizar Evidências -->
+<div class="modal fade" id="modalEvidences" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Evidências e Log</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="galleryEvidences" class="row g-2 mb-3"></div>
+
+                <div id="logContainer" class="p-3 bg-light border rounded" style="max-height: 300px; overflow-y: auto;">
+                    <p class="text-muted text-center">Sem comentários registrados.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const modalCheck = document.getElementById('modalCheck');
+            const modalEvidences = document.getElementById('modalEvidences');
+            const checkSelect = document.getElementById('CheckSelect');
+            const checkIdInput = document.getElementById('CheckId');
+            const checkTypeInput = document.getElementById('CheckType');
+            const decisionDiv = document.getElementById('decisionDiv');
+            const existingGallery = document.getElementById('existingGallery');
+            const logContainer = document.getElementById('logContainer');
+            const galleryEvidences = document.getElementById('galleryEvidences');
+
+            const checkOptions = [];
+            @if (Model.IsOperador)
+            {
+                <text>checkOptions.push({ value: 'user', text: 'Comentário do Operador' });</text>
+            }
+            @if (Model.IsLider)
+            {
+                <text>checkOptions.push({ value: 'check1', text: 'Check 1 (Líder)' });</text>
+            }
+            @if (Model.IsEngenheiro)
+            {
+                <text>checkOptions.push({ value: 'check2', text: 'Check 2 (Engenharia)' });</text>
+            }
+
+            // Modal Realizar Check
+            modalCheck.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const checkId = button.getAttribute('data-checkid');
+                const evidences = (button.getAttribute('data-evidences') || '').split(';').filter(e => e.trim() !== '');
+                checkIdInput.value = checkId;
+
+                // Preenche opções
+                checkSelect.innerHTML = '';
+                checkOptions.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.text;
+                    checkSelect.appendChild(option);
+                });
+                if (checkSelect.options.length > 0)
+                    checkTypeInput.value = checkSelect.options[0].value;
+
+                checkSelect.addEventListener('change', function () {
+                    checkTypeInput.value = this.value;
+                    decisionDiv.style.display = (this.value === 'check2') ? 'block' : 'none';
+                });
+
+                decisionDiv.style.display = (checkTypeInput.value === 'check2') ? 'block' : 'none';
+
+                // Galeria de imagens existentes
+                if (evidences.length > 0) {
+                    existingGallery.innerHTML = evidences.map(path => `
+                        <div class="col-6 col-md-3">
+                            <div class="card shadow-sm border-0">
+                                <img src="/Stencil/ViewImage?path=${encodeURIComponent(path)}"
+                                     class="card-img-top rounded"
+                                     style="height:120px; object-fit:cover; cursor:pointer;"
+                                     onclick="window.open('/Stencil/ViewImage?path=${encodeURIComponent(path)}','_blank')">
+                            </div>
+                        </div>`).join('');
+                } else {
+                    existingGallery.innerHTML = `<p class="text-muted text-center">Sem evidências anteriores.</p>`;
+                }
+            });
+
+            // Modal Ver Evidências
+            modalEvidences.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const evidences = (button.getAttribute('data-evidences') || '').split(';').filter(e => e.trim() !== '');
+                const log = button.getAttribute('data-log') || '';
+
+                galleryEvidences.innerHTML = evidences.length > 0
+                    ? evidences.map(path => `
+                        <div class="col-6 col-md-3">
+                            <div class="card shadow-sm border-0">
+                                <img src="/Stencil/ViewImage?path=${encodeURIComponent(path)}"
+                                     class="card-img-top rounded"
+                                     style="height:150px; object-fit:cover; cursor:pointer;"
+                                     onclick="window.open('/Stencil/ViewImage?path=${encodeURIComponent(path)}','_blank')">
+                            </div>
+                        </div>`).join('')
+                    : `<p class="text-muted text-center">Sem evidências disponíveis.</p>`;
+
+                if (log.trim() !== "")
+                    logContainer.innerHTML = log.split('\n').map(l => `<div class="border-bottom py-1"><small>${l}</small></div>`).join('');
+                else
+                    logContainer.innerHTML = `<p class="text-muted text-center">Sem comentários registrados.</p>`;
+            });
+        });
+    </script>
+}

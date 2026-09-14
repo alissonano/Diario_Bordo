@@ -1,0 +1,108 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f2f5;
+    color: #4a4a4a;
+    font-weight: 100;
+}
+
+h2 {
+    font-weight: 300;
+    margin-bottom: 20px;
+    color: #2f3e46;
+}
+
+.form-container {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 500;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+    .btn-primary:hover {
+        background-color: #0d3efd;
+        transform: translateY(-2px);
+    }
+
+textarea.form-control {
+    resize: none;
+    height: 200px;
+    overflow-y: auto;
+}
+
+/* Tabela com scroll */
+.table-container {
+    max-height: 400px; /* altura visível */
+    overflow-y: auto; /* habilita scroll vertical */
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+/* Tabela full width e com border-collapse */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    /* Cabeçalho fixo e compatível com Edge */
+    .table thead {
+        display: table-header-group; /* importante para Edge */
+    }
+
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 2;
+            text-align: center;
+            font-weight: 600;
+            padding: 10px 5px;
+            font-size: 14px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+    /* Corpo da tabela */
+    .table tbody td {
+        text-align: center;
+        padding: 8px 5px;
+        font-size: 13px;
+        color: #555;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .table tbody tr:nth-child(even) {
+        background-color: #f8f9ff;
+    }
+
+    .table tbody tr:hover {
+        background-color: #e3e8ff;
+    }
+
+/* Popup de sucesso */
+#popupSucesso {
+    font-weight: 600;
+    text-align: center;
+    border-radius: 8px;
+    padding: 12px 15px;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1050;
+    width: 300px;
+    display: none;
+    background-color: #d4edda;
+    color: #1f2d3d;
+    border: 1px solid #c3e6cb;
+}

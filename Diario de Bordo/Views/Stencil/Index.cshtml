@@ -1,0 +1,81 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.Stencil>
+
+@{
+    ViewData["Title"] = "Stencils Cadastrados";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-3">📋 Stencils Cadastrados</h3>
+
+    <p>
+        <a asp-action="Create" class="btn btn-success">➕ Novo Stencil</a>
+    </p>
+
+    <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="🔍 Pesquisar stencil...">
+    </div>
+
+    <table id="stencilsTable" class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th># Stencil</th>
+                <th>Descrição</th>
+                <th>Cliente</th>
+                <th>Data Fabricação</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var stencil in Model)
+            {
+                <tr>
+                    <td>@stencil.num_stencil</td>
+                    <td>@stencil.descricao</td>
+                    <td>@stencil.cliente</td>
+                    <td>@stencil.data_fabricacao</td>
+                    <td class="text-end px-4">
+                        <div class="btn-group gap-1">
+
+                            @if (Context.Session.GetString("IsEngenheiro") == "true")
+                            {
+                                <a asp-action="Edit" asp-route-id="@stencil.id"
+                                   class="btn btn-outline-dark border-0 btn-sm rounded-0 py-2 px-3 hover-dark">
+                                    <i class="bi bi-pencil-square me-1"></i> EDITAR
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-light border-0 btn-sm rounded-0 py-2 px-3 text-muted opacity-50 shadow-none"
+                                        style="cursor: not-allowed;"
+                                        data-bs-toggle="tooltip"
+                                        title="Somente a Engenharia pode editar">
+                                    <i class="bi bi-lock-fill me-1"></i> EDITAR
+                                </button>
+                            }
+
+                            <a asp-action="Check" asp-route-id="@stencil.id"
+                               class="btn btn-warning border-0 btn-sm rounded-0 py-2 px-3 shadow-sm fw-bold">
+                                <i class="bi bi-tools me-1"></i> CHECK
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        // Filtra a tabela conforme digitado na barra de pesquisa
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#stencilsTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            });
+        });
+    </script>
+}

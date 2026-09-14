@@ -1,0 +1,1316 @@
+﻿@* Views/Fuji/Andon.cshtml *@
+@{
+    Layout = null;
+    var linha = Context.Request.Query["line"].ToString() ?? "SMD 8";
+}
+
+<audio id="audioSucesso" src="~/sounds/wolfy_sanic-chaos-emerald-15983.mp3" preload="auto"></audio>
+<audio id="audioAlerta" src="~/sounds/negative.mp3" preload="auto"></audio>
+
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ANDON SYSTEM - @linha</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-dark: #000000;
+            --ok-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            background-color: var(--bg-page);
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        .andon-grid {
+            height: 100vh;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 14vh 28vh 28vh 22vh; /* Linhas: Header, Dados 1, Dados 2, Footer */
+            gap: 15px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        /* Padronização de Tiles */
+        .tile {
+            background: var(--bg-card);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        /* Container que limita a largura */
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        /* Classe que será aplicada via JS se o texto for grande */
+        .marquee-active {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee-animation 15s linear infinite;
+        }
+
+        @@keyframes marquee-animation {
+            0%
+
+        {
+            transform: translate(0, 0);
+        }
+
+        100% {
+            transform: translate(-100%, 0);
+        }
+
+        }
+
+        .setup-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, #1a1c2c 0%, #000 100%);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column; /* Organiza itens em coluna */
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 2vh; /* Margem de segurança de 2% da altura */
+            box-sizing: border-box;
+            overflow: hidden; /* Garante que não apareça barra de rolagem */
+        }
+
+        .setup-content {
+            width: 95vw; /* Ocupa 95% da largura da tela */
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .setup-header {
+            /* Responsivo: mínimo 20px, ideal 3% da largura, máximo 50px */
+            font-size: clamp(20px, 3vw, 50px);
+            font-weight: 900;
+            color: #f59e0b;
+            letter-spacing: 2px;
+            margin-bottom: 2vh;
+            text-transform: uppercase;
+        }
+
+        .setup-etapa {
+            /* Responsivo: ideal 6% da largura */
+            font-size: clamp(30px, 6vw, 100px);
+            font-weight: 800;
+            text-transform: uppercase;
+            background: #f59e0b;
+            color: #000;
+            display: inline-block;
+            padding: 1vh 4vw;
+            border-radius: 1vw;
+            margin-bottom: 2vh;
+            white-space: nowrap; /* Não deixa o nome da etapa quebrar linha */
+        }
+
+        .setup-timer {
+            /* O "PULO DO GATO": O tamanho da fonte baseia-se na largura da tela (vw) */
+            /* 20vw significa 20% da largura total da tela */
+            font-size: 20vw;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: 900;
+            line-height: 0.8;
+            margin: 0;
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -1vw; /* Aproxima um pouco os números */
+            text-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
+        }
+
+        .setup-footer {
+            font-size: clamp(15px, 2vw, 35px);
+            color: #475569;
+            margin-top: 3vh;
+            font-weight: 600;
+        }
+
+        .timer-danger {
+            color: #ef4444 !important;
+            text-shadow: 0 0 60px rgba(239, 68, 68, 0.6) !important;
+            animation: pulse-red 1s infinite alternate;
+        }
+
+        .overlay-danger {
+    background: radial-gradient(circle, #450a0a 0%, #000 100%) !important;
+    border: 10px solid #ef4444;
+}
+
+        @@keyframes pulse-red {
+            from
+
+        {
+            transform: scale(1);
+        }
+
+        to {
+            transform: scale(1.03);
+        }
+
+        }
+        .program-name {
+            font-size: 2.5rem;
+            color: yellow;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
+
+        /* Header Tiles */
+        .tile-header-logo {
+            grid-column: 1;
+        }
+
+        .tile-header-banner {
+            grid-column: 2 / 4;
+            background: var(--text-dark);
+            color: white;
+        }
+
+        /* Tiles Grandes Centrais */
+        .tile-large {
+            grid-row: 2 / 4;
+            border: 3px solid #cbd5e1;
+        }
+
+        .total-position {
+            grid-column: 2;
+        }
+
+        .eff-position {
+            grid-column: 3;
+        }
+
+        /* Textos */
+        .line-title {
+            font-size: 5.0rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+
+
+        .label {
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #1e293b;
+        }
+
+        .value {
+            font-size: 6rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .alert-stop {
+            background: #fff1f2 !important;
+            border: 4px solid var(--danger-color) !important;
+        }
+
+        .overlay-sem-meta {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75); /* 0.75 = 75% opaco — ajuste a gosto */
+            backdrop-filter: blur(3px); /* leve desfoque no fundo, opcional */
+            z-index: 99998;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            animation: piscar-borda 1.2s ease-in-out infinite alternate;
+        }
+
+        .sem-meta-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3vw;
+            background: #f59e0b;
+            color: #000;
+            /* Tamanho de fonte que escala com a largura da tela (5% da largura) */
+            font-size: 5vw;
+            font-weight: 900;
+            letter-spacing: 0.5vw;
+            text-transform: uppercase;
+            padding: 3vh 6vw;
+            border-radius: 2vw;
+            margin-bottom: 5vh;
+            animation: pulsar-badge 1.2s ease-in-out infinite alternate;
+            box-shadow: 0 0 50px rgba(245, 158, 11, 0.5);
+        }
+
+        .sem-meta-subtitulo {
+            /* 2% da largura da tela é perfeito para 50 polegadas */
+            font-size: 2.2vw;
+            color: #cbd5e1;
+            background: transparent;
+            font-weight: 600;
+            letter-spacing: 0.1vw;
+            text-transform: uppercase;
+            margin-top: 2vh;
+            max-width: 80vw; /* Limita a largura do texto para não esticar demais */
+            line-height: 1.4;
+        }
+
+        @@keyframes pulsar-badge {
+            from
+
+        {
+            transform: scale(1);
+        }
+
+        to {
+            transform: scale(1.04);
+        }
+
+        }
+
+        @@keyframes piscar-borda {
+            from
+
+        {
+            outline: 8px solid transparent;
+        }
+
+        to {
+            outline: 8px solid #f59e0b;
+        }
+
+        }
+
+        #effIcon {
+            font-size: 40rem !important; /* Emoji Gigante */
+            line-height: 1;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            transition: all 0.5s ease; /* Transição suave na troca de ícone */
+        }
+
+
+
+        /* Valor da eficiência menor e logo abaixo */
+        #effValue {
+            font-size: 6rem !important;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        /* Ajuste no motivo da parada para não embolar */
+        #motivoParada {
+            font-size: 2.0rem;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="andon-grid">
+        <div class="tile tile-header-logo">
+
+            <img src="~/images/gbr-logo.png" alt="Logo" style="max-height: 78%; max-width: 85%; object-fit: contain;" />
+
+        </div>
+
+        <div class="tile tile-header-banner">
+            <div class="d-flex align-items-center gap-4">
+                <div class="line-title">@linha.ToUpper()</div>
+            </div>
+
+            <div class="marquee-container">
+                <div id="nomePrograma" class="program-name">AGUARDANDO...</div>
+            </div>
+        </div>
+
+        <div class="tile">
+            <div class="label" style="font-size: 4.0rem;">META HORA</div>
+            <div class="value" id="metaHora" style="font-size: 10rem;">0</div>
+        </div>
+
+        <div class="tile">
+            <div class="label" style="font-size: 4.0rem;">META TURNO</div>
+            <div class="value" id="metaDia" style="font-size: 10rem;">0</div>
+        </div>
+
+        <div class="tile tile-large total-position">
+            <div class="label" style="font-size: 4.0rem;">TOTAL ACUMULADO</div>
+            <div class="value" id="totalAcumulado" style="font-size: 10rem;">0</div>
+            <div class="value" style="font-size: 4.0rem; color: black; margin-top: 15px;">PEÇAS PRODUZIDAS</div>
+        </div>
+
+        <div id="tileEficiencia" class="tile tile-large eff-position">
+            <div class="label" style="font-size: 4.0rem;">EFICIÊNCIA</div>
+
+            <div id="effIcon">
+                <img id="gbotAnimado" src="~/EMOJI/thinking-about.gif" style="height: 180px; width: auto; object-fit: contain;" />
+            </div>
+
+            <div id="effValue" class="value">0%</div>
+
+            <div id="motivoParada" class="fw-bold text-uppercase">OPERANDO</div>
+        </div>
+
+        <div class="tile">
+            <div id="dataHeader" class="fw-bold" style="font-size: 4.0rem; color: black;">--/--/----</div>
+            <div id="relogioHeader" class="value" style="font-size: 4.5rem;">00:00:00</div>
+        </div>
+
+
+        <div class="tile">
+            <div class="label" style="font-size: 3.0rem;">TURNO</div>
+            <div id="turnoNome" class="value" style="font-size: 4.5rem;">---</div>
+        </div>
+        <div class="tile">
+            <div class="label" style="font-size: 3.0rem;">STATUS</div>
+            <div id="statusConexaoContainer" class="value" style="font-size: 4.5rem; display: flex; align-items: center; gap: 20px; cursor: pointer;">
+                <span id="statusConexao" style="color: var(--ok-color);">ONLINE</span>
+                <i id="btnSom" class="bi bi-volume-mute-fill text-secondary"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlaySetup" class="setup-fullscreen" style="display: none;">
+        <div class="setup-content">
+            <div class="setup-header">PROCESSO DE SETUP EM ANDAMENTO</div>
+            <div id="setupEtapaNome" class="setup-etapa">CARREGANDO...</div>
+            <div id="setupCronometroGigante" class="setup-timer">00:00:00</div>
+            <div class="setup-footer">BIPE O PRÓXIMO QR CODE PARA AVANÇAR</div>
+        </div>
+    </div>
+    <div id="overlaySemMeta" class="overlay-sem-meta" style="display:none;">
+        <div class="sem-meta-badge">
+            ⚠&nbsp; SEM META DEFINIDA &nbsp;⚠
+        </div>
+        <div class="sem-meta-subtitulo">
+            Solicitar definição de meta para o responsável de planejamento ou supervisão. O sistema não consegue calcular a eficiência sem essa informação.
+        </div>
+        <div style="margin-top: 2vh; font-size: clamp(12px, 1.2vw, 18px); color: #475569;">
+            ANDON SYSTEM — MONITORAMENTO INATIVO
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalJustificativa" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        JUSTIFICATIVA PARA A PARADA <span id="labelIdParada" class="badge bg-white text-danger">#0000</span>
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="inputMotivoReal" class="form-label fw-bold">Por que a linha parou?</label>
+                        <textarea class="form-control form-control-lg" id="inputMotivoReal" rows="3" placeholder="Ex: Falha técnica, falta de material, troca de modelo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span id="msgSalvando" class="text-muted small me-auto" style="display:none;">
+                        <i class="fas fa-spinner fa-spin"></i> Salvando no diário...
+                    </span>
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">CANCELAR</button>
+                    <button type="button" id="btnSalvarJustificativa" class="btn btn-danger px-4 fw-bold" onclick="salvarJustificativaManual()">
+                        SALVAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        let somAtivado = true; // <-- Ela TEM que estar aqui em cima
+        const linha = "@linha";
+        let ultimaQtd = -1;
+        let segundosInativo = 0;
+        const linhaAtual = new URLSearchParams(window.location.search).get('line') || 'SMD1';
+        let falhasConsecutivas = 0;
+        let emModoRecuperacao = false;
+        let servidorOffline = false
+        let idParadaAtualAtiva = null;
+                let timerAutoCloseModal = null; // Variável para controlar o tempo da modal
+
+        const linhasHabilitadasAutoStop = ["SMD1"];
+
+
+
+        $('#btnAndon').attr('href', '/Fuji/Andon?line=' + linhaAtual);
+
+                function iniciarTimerFechamentoModal() {
+            // Limpa qualquer timer anterior para não haver conflito
+            if (timerAutoCloseModal) clearTimeout(timerAutoCloseModal);
+
+            // Inicia a contagem de 20 segundos (20000ms)
+            timerAutoCloseModal = setTimeout(() => {
+                const modalElement = document.getElementById('modalJustificativa');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
+                if (modalInstance && $('#modalJustificativa').hasClass('show')) {
+                    modalInstance.hide();
+                    console.log("[AURA] Modal fechada automaticamente após 20s.");
+                }
+            }, 20000);
+        }
+
+
+                let monitorTransicao = null;
+
+        function verificarTransicao() {
+            console.log("[AURA DEBUG] 1. Iniciando chamada ao endpoint...");
+
+            $.get('/Fuji/ObterStatusTransicao', { linha: 'SMD1' })
+                .done(function(res) {
+                    console.log("[AURA DEBUG] 2. Resposta do Servidor:", res);
+
+                    // Lógica: Se a quantidade do novo é 0, o cronómetro continua
+                    if (res.modelo_novo_qtd === 0) {
+                        console.log("[AURA DEBUG] 3. Modelo Novo com Qtd 0. Disparando Modal.");
+                        exibirModalSetup(res.timestamp_fim_a, res.modelo_anterior);
+                    } else {
+                        console.log("[AURA DEBUG] 3. Modelo Novo detetado (" + res.modelo_novo + "). Fechando Modal.");
+                        fecharModalSetup();
+                    }
+                })
+                .fail(function(xhr, status, error) {
+                    console.error("[AURA ERROR] Falha Crítica no AJAX:");
+                    console.error("Status: " + status);
+                    console.error("Erro: " + error);
+                    console.error("Resposta completa: ", xhr.responseText);
+                });
+        }
+                let setupTimerInterval = null;
+
+        function formatarTempo(totalSegundos) {
+            const horas = Math.floor(totalSegundos / 3600);
+            const minutos = Math.floor((totalSegundos % 3600) / 60);
+            const segundos = totalSegundos % 60;
+            return [horas, minutos, segundos].map(v => v < 10 ? "0" + v : v).join(":");
+        }
+
+        function gerenciarOverlaySetup(motivo, dataInicio) {
+            if (motivo && motivo.toUpperCase().startsWith("SETUP-")) {
+                $('#overlaySetup').show();
+                $('#setupEtapaNome').text(motivo.replace("SETUP-", ""));
+                iniciarCronometroGigante(dataInicio);
+            } else {
+                $('#overlaySetup').hide();
+                if (setupTimerInterval) clearInterval(setupTimerInterval);
+            }
+        }
+
+        function iniciarCronometroGigante(dataInicio) {
+            if (setupTimerInterval) clearInterval(setupTimerInterval);
+
+            // Converte a string de data vinda do banco para o objeto Date do JS
+            const startTime = new Date(dataInicio).getTime();
+
+            // --- CÁLCULO IMEDIATO (Para evitar o 00:00:00 inicial) ---
+            const atualizarTick = () => {
+                const agora = new Date().getTime();
+                const diffSegundos = Math.floor((agora - startTime) / 1000);
+
+                if (diffSegundos >= 0) {
+                    const tempoFormatado = formatarTempo(diffSegundos);
+                    $('#setupCronometroGigante').text(tempoFormatado);
+
+                    // Alerta visual se passar de 20 minutos (1200s)
+                    if (diffSegundos > 1200) {
+                        $('#setupCronometroGigante').addClass('timer-danger');
+                        $('#overlaySetup').addClass('overlay-danger');
+                    } else {
+                        $('#setupCronometroGigante').removeClass('timer-danger');
+                        $('#overlaySetup').removeClass('overlay-danger');
+                    }
+                }
+            };
+
+            // Executa uma vez agora
+            atualizarTick();
+
+            // E depois executa a cada 1 segundo
+            setupTimerInterval = setInterval(atualizarTick, 1000);
+        }
+
+
+          function atualizar() {
+            $.get('/Fuji/ObterStatusAtual?line=' + linha)
+                .done(function (res) {
+
+                    // 1. CHECAGEM DE APP_OFFLINE (Se o IIS devolveu HTML em vez de JSON)
+                    if (typeof res === 'string' && res.indexOf('<!DOCTYPE') > -1) {
+                        lidarComServidorOffline("Servidor em Manutenção...");
+                        return;
+                    }
+
+                    // 2. RECUPERAÇÃO (Se estava offline e agora voltou)
+                    if (servidorOffline) {
+                        console.log("Conexão restabelecida. Recarregando...");
+                        location.reload();
+                        return;
+                    }
+
+                    // 3. PROCESSAMENTO NORMAL
+                    if (res.success) {
+                        console.log("Parada já existe no banco?", res.paradaEmAberto);
+                        servidorOffline = false;
+                        $('#avisoUpdate').hide();
+                        $('#statusConexao').text("ONLINE").css('color', 'var(--ok-color)');
+
+                        const metaNominal = res.meta || 0;
+                        const realizadoTurno = res.produzidoHora || 0;
+                        const pan = res.panelizacao || 1;
+                        const info = calcularDadosSincronizados(realizadoTurno, metaNominal);
+                        const metaTurnoReal = calcularMetaTurnoDinamica(res, metaNominal);
+
+                                // --- ATUALIZAÇÃO DOS VALORES VINDOS DO CONTROLLER ---
+                        const produzidoReal = res.produzidoHora || 0;
+                        const metaHoraNominal = res.meta || 0;
+
+                        // Meta do Dia já descontando as paradas (Ex: 700)
+                        const metaDiaReal = res.metaDia || 0;
+
+                        // Meta proporcional que "congela" no almoço (Ex: 150)
+                        const metaAteAgoraReal = res.metaAteAgora || 0;
+
+                        // CAPTURA A TOLERÂNCIA DO BANCO
+                        const multDinamico = res.toleranciaTakt || 3;
+
+                        ultimaEficienciaGeral = info.ef;
+
+                        // --- ATUALIZAÇÃO DO LADO ---
+                        const ladoTexto = res.lado === "T" ? "TOP" : "BOT";
+                        const programaFull = res.produto ? `${res.produto} [ ${ladoTexto} ]` : "NENHUM PROGRAMA ATIVO";
+
+                        // --- LOGICA DO MARQUEE ---
+                        const $progEl = $('#nomePrograma');
+                        $progEl.text(programaFull);
+                        $progEl.removeClass('marquee-active');
+
+                        const containerWidth = $progEl.parent().width();
+                        const textWidth = $progEl[0].scrollWidth;
+
+                        if (textWidth > containerWidth) {
+                            $progEl.addClass('marquee-active');
+                        }
+
+                        // UI Updates Gerais
+                        $('#totalAcumulado').text(produzidoReal);
+                        $('#metaHora').text(metaHoraNominal);
+                        $('#metaDia').text(metaDiaReal); // Exibe a meta justa para o operador
+                        $('#turnoNome').text(info.nome);
+                        $('#effValue').text(info.ef + "%");
+
+                        // Dashboard de Turnos
+                        $('#producaoP1').text(res.producao1T || 0);
+                        $('#producaoP2').text(res.producao2T || 0);
+                        $('#producaoP3').text(res.producao3T || 0);
+
+
+                        const gbotEl = $('#gbotAnimado');
+                        const acumuladoEl = $('#totalAcumulado');
+        if (metaHoraNominal === 0) {
+            $('#overlaySemMeta').show();
+        } else {
+            $('#overlaySemMeta').hide();
+        }
+
+        // 1. PRIORIDADE: Se a linha está parada, o GIF deve ser o de "Parado/Alerta"
+        if (res.paradaEmAberto) {
+
+            gbotEl.attr('src', '/EMOJI/thinking-about.gif');
+            acumuladoEl.css('color', 'var(--danger-color)');
+        }
+        // 2. Eficiência EXCELENTE (>= 95%)
+        else if (info.ef >= 95) {
+            gbotEl.attr('src', '/EMOJI/very-happy-emoji.gif');
+            acumuladoEl.css('color', 'var(--ok-color)');
+        }
+        // 3. Eficiência BOA (>= 85%)
+        else if (info.ef >= 85) {
+                    gbotEl.attr('src','/EMOJI/happy-emoji.gif');
+            acumuladoEl.css('color', 'var(--ok-color)');
+        }
+        // 4. Eficiência ATENÇÃO (>= 80%)
+        else if (info.ef >= 80) {
+                    gbotEl.attr('src', '/EMOJI/tired-emoji-emoji-tired.gif');
+            acumuladoEl.css('color', 'var(--warning-color)');
+        }
+        // 5. Eficiência BAIXA (< 80%)
+        else {
+                    gbotEl.attr('src', '/EMOJI/crying-emoji.gif');
+            acumuladoEl.css('color', 'var(--danger-color)');
+        }
+
+                        // Status de Parada
+        if (res.paradaEmAberto) {
+
+            console.log("Parada já existe no banco?", res.paradaEmAberto);
+            // 1. Atualização Visual do Card
+            $('#tileEficiencia').addClass('alert-stop');
+
+            // Pegamos o motivo que veio do banco (ou o padrão se estiver vazio)
+            const motivoNoBanco = res.motivoParada || "INATIVIDADE AUTOMATICA";
+            $('#motivoParada').text(motivoNoBanco).addClass('text-danger');
+
+            // 2. Sincronização do ID
+            const idDoServidor = res.idParadaEmAberto || res.idParada;
+
+            if (idDoServidor) {
+                idParadaAtualAtiva = idDoServidor;
+
+                // 3. Atualiza o ID no cabeçalho da Modal conforme solicitado
+                $('#labelIdParada').text('#' + idParadaAtualAtiva);
+
+                // 4. Preparação da Modal
+                $('#btnSalvarJustificativa').prop('disabled', false);
+                $('#msgAguarde').hide();
+
+                // --- NOVA CONDICIONAL DE JUSTIFICATIVA ---
+                // Lista de motivos que o sistema gera sozinho (Watchdog)
+                const motivosSistema = [
+                    "INATIVIDADE AUTOMATICA",
+                    "INATIVIDADE AUTOMATICA (TAKT LIMIT)",
+                    "INATIVIDADE AUTOMÁTICA"
+                ];
+
+                    gerenciarOverlaySetup(res.motivoParada, res.timestampInicioReal);
+
+        $('#tileEficiencia').addClass('alert-stop');
+        $('#motivoParada').text(res.motivoParada).addClass('text-danger');
+            }
+        } else {
+            // Se não há parada no banco, limpa o estado e remove alertas
+            gerenciarOverlaySetup(null, null);
+            $('#tileEficiencia').removeClass('alert-stop');
+            $('#motivoParada').text("OPERANDO").removeClass('text-danger');
+            idParadaAtualAtiva = null;
+
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalJustificativa'));
+            if (modalInstance) modalInstance.hide();
+        }
+
+        // --- CHAMADA DO WATCHDOG ---
+        verificarTaktAutomatico(realizadoTurno, metaNominal, pan, res, res.lado, multDinamico);
+                    }
+                })
+                .fail(function (xhr) {
+                    servidorOffline = true;
+                    let msg = "Falha de comunicação com o servidor...";
+                    if (xhr.status === 0) msg = "Rede desconectada ou Servidor Offline";
+                    if (xhr.status === 503) msg = "IIS - Serviço Temporariamente Indisponível";
+
+                    lidarComServidorOffline(msg);
+                });
+        }
+
+
+        function lidarComServidorOffline(mensagem)
+        {
+            servidorOffline = true;
+            console.warn("OFFLINE: " + mensagem);
+
+            // Atualiza a UI para o modo de erro
+            $('#statusConexao').text("OFFLINE").css('color', 'var(--danger-color)');
+
+            // Mostra aquela tela de atualização que criamos antes
+            $('#avisoUpdate').css('display', 'flex').find('p').text(mensagem + " Tentando reconectar...");
+
+            // Importante: A persistência já acontece porque o setInterval(atualizar, 5000)
+            // continuará disparando e caindo aqui até que o .done() tenha sucesso.
+        }
+
+
+
+        function calcularMetaTurnoDinamica(res, metaHora) {
+            const agora = new Date();
+            const minAtual = agora.getHours() * 60 + agora.getMinutes();
+
+            // 1. Identificar qual o turno atual e seus horários (convertendo HH:mm para minutos totais)
+            let inicioTurnoMins = 0;
+            let fimTurnoMins = 0;
+
+            // Lógica simplificada para identificar o turno (ajuste conforme sua regra de Manaus)
+            if (minAtual >= 360 && minAtual < 840) { // 06:00 - 14:00
+                inicioTurnoMins = converterParaMinutos(res.t1Inicio) || 360;
+                fimTurnoMins = converterParaMinutos(res.t1Fim) || 840;
+            } else if (minAtual >= 840 && minAtual < 1320) { // 14:00 - 22:00
+                inicioTurnoMins = converterParaMinutos(res.t2Inicio) || 840;
+                fimTurnoMins = converterParaMinutos(res.t2Fim) || 1320;
+            } else { // 3º Turno (Lida com a virada da meia-noite)
+                inicioTurnoMins = converterParaMinutos(res.t3Inicio) || 1320;
+                fimTurnoMins = converterParaMinutos(res.t3Fim) || 360;
+            }
+
+            // 2. Calcular tempo total do turno em minutos
+            let tempoTotalTurno = fimTurnoMins - inicioTurnoMins;
+            if (tempoTotalTurno < 0) tempoTotalTurno += 1440; // Ajuste para o 3º turno
+
+            // 3. Subtrair minutos de paradas programadas que pertencem a este turno e ao dia de hoje
+            let minutosParadas = 0;
+            const diaSemana = agora.getDay();
+            const diasMap = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+            const hojeProp = diasMap[diaSemana];
+
+            if (res.paradasProgramadas) {
+                res.paradasProgramadas.forEach(p => {
+                    if (p[hojeProp]) { // Se a parada se aplica ao dia de hoje
+                        const pIni = converterParaMinutos(p.inicio);
+                        const pFim = converterParaMinutos(p.fim);
+
+                        // Verifica se a parada está dentro da janela do turno atual
+                        if (pIni >= inicioTurnoMins && pIni < (inicioTurnoMins + tempoTotalTurno)) {
+                            let duracao = pFim - pIni;
+                            if (duracao < 0) duracao += 1440;
+                            minutosParadas += duracao;
+                        }
+                    }
+                });
+            }
+
+            const minutosProdutivos = tempoTotalTurno - minutosParadas;
+
+            // 4. Meta do Turno = (Meta Hora / 60) * Minutos Produtivos
+            return Math.round((metaHora / 60) * minutosProdutivos);
+        }
+
+        // Função auxiliar para converter "06:00" em 360
+        function converterParaMinutos(horarioStr) {
+            if (!horarioStr) return null;
+            const partes = horarioStr.split(':');
+            return parseInt(partes[0]) * 60 + parseInt(partes[1]);
+        }
+
+
+                // 1. Defina aqui as linhas que terão o stop automático ligad
+
+        function verificarTaktAutomatico(realizado, meta, pan, res, lado, multiplicador) {
+            // 1. Filtro de Segurança: Só prossegue se a linha atual estiver na lista
+
+                    // 1. Checa se estamos em horário de PARADA PROGRAMADA
+            const paradaProgramada = obterParadaAtiva(res.paradasProgramadas);
+
+                if (emTransicaoDeBipe) {
+            console.log("[WATCHDOG] Ignorando ciclo: Transição de bipe em curso...");
+            return;
+        }
+
+            if (paradaProgramada) {
+                console.log(`[AURA] Parada Programada Detectada: ${paradaProgramada.descricao}`);
+
+                // UI: Mostra o aviso na tela
+                $('#tileEficiencia').removeClass('alert-stop').addClass('bg-info-subtle'); // Cor azul clara/info
+                $('#motivoParada').text(paradaProgramada.descricao).css('color', '#055160'); // Texto azul escuro
+
+                ultimaQtd = realizado; // Sincroniza para não abrir parada assim que o horário acabar
+                return; // MATA A EXECUÇÃO AQUI (Não abre parada automática)
+            }
+
+
+            if (!linhasHabilitadasAutoStop.includes(linha)) {
+                ultimaQtd = realizado;
+                return;
+            }
+
+            // 2. Configuração do Takt Alvo e Limite Dinâmico
+            // Usamos o multiplicador que vem da configuração da linha (ou 3 como padrão/fallback)
+            const mult = multiplicador || 3;
+            const taktAlvoSegundos = meta > 0 ? (3600 / (meta / pan)) : 60;
+            const limite = taktAlvoSegundos * mult;
+
+            const ladoIdentificado = res.lado || (typeof ladoAtual !== 'undefined' ? ladoAtual : 'T');
+
+            // 3. Cálculo da Inatividade Real
+            const agora = new Date();
+            const ultimaPlaca = new Date(res.timestampUltimaPlaca);
+            const segundosInativoReal = Math.floor((agora - ultimaPlaca) / 1000);
+
+            console.group(`%c[WATCHDOG AURA] - ${agora.toLocaleTimeString()}`, "color: #007bff; font-weight: bold;");
+            console.log(`Meta: ${res.meta} | Último Registro Real: %c${res.timestampUltimaPlaca} {`, "color: #e83e8c; font-weight: bold;");
+
+            // Status Visual no Console para depuração (Agora mostrando o multiplicador real)
+            const corStatus = segundosInativoReal >= limite ? "color: red; font-weight: bold;" : "color: green;";
+            console.log(`Tempo Inativo: %c${segundosInativoReal}s %c/ Limite (${mult}x): ${limite}s`, corStatus, "color: black;");
+            console.log(`Último Registro Real: %c${res.timestampUltimaPlaca}`, "color: #e83e8c; font-weight: bold;");
+        // --- DENTRO DA verificarTaktAutomatico ---
+
+        // --- 1. LÓGICA DE FECHAMENTO AUTOMÁTICO (RETOMADA) ---
+        if (res.paradaEmAberto) {
+            const qtdReferenciaBanco = res.quantidadeMomentoParada;
+            if (segundosInativoReal < limite && res.meta >0) {
+                console.warn(`[WATCHDOG] Produção detectada! Atual(${realizado}) > Banco(${qtdReferenciaBanco}) .`);
+
+                // --- ATUALIZAÇÃO VISUAL IMEDIATA (VERDE) ---
+                $('#tileEficiencia').removeClass('alert-stop'); // Remove fundo vermelho/alerta
+                $('#motivoParada').text("OPERANDO").removeClass('text-danger'); // Volta texto original
+
+                // Opcional: Forçar a cor do Total Acumulado para verde se a eficiência permitir
+                // atualizarCoresEficiencia(realizado, meta, pan);
+
+                console.log(`[WATCHDOG] Finalizando parada ID: ${res.idParada}`);
+
+                // Chama a função de fechar no banco
+                finalizarParadaAutomatica(res.idParada, realizado);
+
+                // Sincroniza a variável global e encerra este ciclo
+                ultimaQtd = realizado;
+                return;
+            }
+        }
+
+        // --- AÇÃO DE ABERTURA (LINHA PARADA) ---
+        // Adicionamos a checagem da trava 'emTransicaoDeBipe'
+        if (segundosInativoReal >= limite && res.meta > 0 && !emTransicaoDeBipe) {
+
+            // Só entra se NÃO houver parada no banco (segundo o último res)
+            // E se a nossa variável de controle local estiver limpa
+            if (!res.paradaEmAberto && idParadaAtualAtiva === null) {
+
+                idParadaAtualAtiva = "PENDING";
+
+                console.warn(`[WATCHDOG] Takt excedido (${segundosInativoReal}s). Solicitando abertura...`);
+
+                registrarParadaAutomatica(
+                    linha,
+                    res.produto,
+                    ladoIdentificado,
+                    "INATIVIDADE AUTOMATICA ",
+                    res.timestampUltimaPlaca
+                );
+            }
+        } else if (emTransicaoDeBipe) {
+            // Log apenas para você ver no console que a trava funcionou
+            console.log("[WATCHDOG] Abertura automática bloqueada por transição de Bipe.");
+        }
+
+            console.groupEnd();
+            ultimaQtd = realizado;
+        }
+
+
+
+        function obterParadaAtiva(paradas) {
+            if (!paradas || paradas.length === 0) return null;
+
+            const agora = new Date();
+            const diaSemana = agora.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+
+            const horaAtual = agora.getHours().toString().padStart(2, '0') + ":" +
+                             agora.getMinutes().toString().padStart(2, '0');
+
+            // Mapeamento do dia do JS para a propriedade que vem do C#
+            const diasMap = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+            const hojeProp = diasMap[diaSemana];
+
+            return paradas.find(p => {
+                // Verifica se o horário bate E se o checkbox do dia atual estava marcado
+                const estaNoHorario = (horaAtual >= p.inicio && horaAtual <= p.fim);
+                const aplicaHoje = p[hojeProp] === true;
+
+                return estaNoHorario && aplicaHoje;
+            });
+        }
+
+
+        function registrarParadaAutomatica(linha, produto, lado, motivo, timestampReferencia) {
+                const dadosParada = {
+                    Linha: linha,
+                    Produto: produto || "DESCONHECIDO",
+                    Lado: lado || "T",
+                    Motivo: motivo,
+                    Status: "ABERTA",
+                    UltimaQuantidade: parseInt($('#totalAcumulado').text()) || 0,
+                    InicioParada: timestampReferencia // Timestamp da última placa vindo do Controller
+                };
+
+                $.ajax({
+                    url: '/Fuji/RegistrarAberturaParada',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(dadosParada),
+                    success: function (res) {
+                            if (res.success && res.idParada) {
+                                idParadaAtualAtiva = res.idParada;
+
+                                // Injeta o ID no cabeçalho da modal
+                                $('#labelIdParada').text('#' + idParadaAtualAtiva);
+
+                                $('#btnSalvarJustificativa').prop('disabled', false);
+                                $('#msgAguarde').hide();
+        
+                        // const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalJustificativa'));
+                        // modal.show();
+
+                        //         iniciarTimerFechamentoModal();
+            }
+                    },
+                    error: function () {
+                        idParadaAtualAtiva = null;
+                    }
+                });
+            }
+
+
+        function finalizarParadaAutomatica(idParada, qtdFinal) {
+            // Como o Controller usa [FromForm], passamos um objeto simples
+            // e NÃO definimos contentType como application/json.
+            const dados = {
+                id: idParada,
+                quantidadeFinal: qtdFinal
+            };
+
+            $.ajax({
+                url: '/Fuji/FinalizarParadaAutomatica',
+                type: 'POST',
+                data: dados, // jQuery enviará como Form Data por padrão
+                success: function (res) {
+                    if (res.success) {
+                        console.log(`%c[WATCHDOG] Parada ${idParada} encerrada com ${qtdFinal} peças.`, "color: green; font-weight: bold;");
+
+                        // Limpa o estado de parada na tela
+                        gerenciarOverlaySetup(null, null);
+
+                       idParadaAtualAtiva = null;
+                       $('#tileEficiencia').removeClass('alert-stop');
+                       $('#motivoParada').text("OPERANDO").removeClass('text-danger');
+                    } else {
+                        console.error("[WATCHDOG] Falha ao encerrar:", res.message);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("[WATCHDOG] Erro de rede ao finalizar parada.");
+                }
+            });
+        }
+        function salvarJustificativaManual() {
+            const motivo = $('#inputMotivoReal').val().trim();
+
+            if (motivo.length < 3) {
+                alert("Por favor, descreva o motivo da parada.");
+                return;
+            }
+
+            // Feedback visual de carregamento no botão
+            $('#btnSalvarJustificativa').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> SALVANDO...');
+            $('#msgSalvando').show();
+
+            $.post('/Fuji/SalvarJustificativa', { id: idParadaAtualAtiva, motivo: motivo })
+                .done(function (res) {
+                    if (res.success) {
+                        if (timerAutoCloseModal) clearTimeout(timerAutoCloseModal); // <-- LIMPA O TIMER
+                        $('#modalJustificativa').modal('hide');
+                        // Sucesso total
+                        const modalEl = document.getElementById('modalJustificativa');
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        modalInstance.hide();
+
+                        // Limpa para a próxima
+                        $('#inputMotivoReal').val('');
+                        idParadaAtualAtiva = null;
+
+                        // Opcional: Tocar som de sucesso/Lula Feliz aqui
+                        console.log("Justificativa registrada com sucesso.");
+                    } else {
+                        alert("Erro ao salvar: " + res.message);
+                        // Reabilita o botão em caso de erro
+                        $('#btnSalvarJustificativa').prop('disabled', false).text('SALVAR JUSTIFICATIVA');
+                    }
+                })
+                .fail(function() {
+                    alert("Erro crítico de conexão com o servidor.");
+                    $('#btnSalvarJustificativa').prop('disabled', false).text('SALVAR JUSTIFICATIVA');
+                })
+                .always(function() {
+                    $('#msgSalvando').hide();
+                });
+        }
+
+
+        function calcularDadosSincronizados(realizado, metaHora) {
+            const agora = new Date();
+            const minDia = agora.getHours() * 60 + agora.getMinutes();
+            let inicio = 0, nome = "";
+            if (minDia >= 360 && minDia < 840) { inicio = 360; nome = "1º TURNO"; }
+            else if (minDia >= 840 && minDia < 1320) { inicio = 840; nome = "2º TURNO"; }
+            else { inicio = (minDia >= 1320) ? 1320 : (1320 - 1440); nome = "3º TURNO"; }
+
+            let decorrido = minDia - inicio;
+            if (decorrido < 0) decorrido += 1440;
+            let minProdutivos = decorrido > 240 ? decorrido - 60 : decorrido;
+            if (minProdutivos < 0) minProdutivos = 0;
+            if (minProdutivos > 420) minProdutivos = 420;
+
+            const metaAteAgora = (metaHora / 60) * minProdutivos;
+            let ef = metaAteAgora > 0 ? (realizado / metaAteAgora) * 100 : 0;
+            return { nome: nome, ef: Math.min(Math.round(ef), 150) };
+        }
+        // $(document).on('keydown', function(e) {
+        //     // 13 é a tecla Enter (que o scanner envia no final)
+        //     if (e.which === 13) {
+        //         let codigoLimpo = bufferBipe.trim().toUpperCase();
+
+        //         if (codigoLimpo.startsWith("SETUP-")) {
+        //             console.log("%c[AURA] Bipe Detectado: " + codigoLimpo, "color: #f59e0b; font-weight: bold;");
+        //             executarTrocaDeEtapa(codigoLimpo);
+        //         }
+
+        //         bufferBipe = ""; // Limpa o buffer após o Enter
+        //     } else {
+        //         // Ignora teclas de controle como Shift, Alt, etc.
+        //         if (e.key.length === 1) {
+        //             bufferBipe += e.key;
+        //         }
+        //     }
+        // });
+
+        // // --- 3. FUNÇÃO DE EXECUÇÃO COM TRAVA ---
+        // function executarTrocaDeEtapa(motivoFull) {
+        //     console.warn(`%c[AURA] Iniciando Transição: ${motivoFull}`, "font-weight: bold; color: #f59e0b;");
+
+        //     emTransicaoDeBipe = true;
+        //     idParadaAtualAtiva = "TRANSITIONING"; // Bloqueia o Watchdog
+
+        //     const dados = {
+        //         Linha: linha,
+        //         MotivoBipado: motivoFull,
+        //         Produto: $('#nomePrograma').text().split(' [')[0],
+        //         Lado: new URLSearchParams(window.location.search).get('line') === 'SMD1' ? 'T' : 'B'
+        //     };
+
+        //     $.ajax({
+        //         url: '/Fuji/ProcessarBipeSetup',
+        //         type: 'POST',
+        //         contentType: 'application/json',
+        //         data: JSON.stringify(dados),
+        //         success: function(res) {
+        //             if (res.success) {
+        //                 // ATUALIZAÇÃO IMEDIATA (Não espera o Atualizar())
+        //                 idParadaAtualAtiva = res.idNovo;
+        //                 $('#motivoParada').text(res.novoMotivo).addClass('text-warning');
+        //                 $('#labelIdParada').text('#' + res.idNovo);
+
+        //                 console.log("%c[AURA] Sincronizado com ID: " + res.idNovo, "color: #10b981; font-weight: bold;");
+
+        //                 // Mantém a trava por 5 segundos para o banco respirar
+        //                 setTimeout(() => {
+        //                     emTransicaoDeBipe = false;
+        //                 }, 5000);
+        //             }
+        //         },
+        //         error: function() {
+        //             emTransicaoDeBipe = false;
+        //             idParadaAtualAtiva = null;
+        //         }
+        //     });
+        // }
+
+
+
+
+
+
+        // --- 1. VARIÁVEIS DE CONTROLE ---
+        let emTransicaoDeBipe = false;
+        let bufferBipe = "";
+
+        // --- 2. CAPTURA GLOBAL DO SCANNER (QR CODE) ---
+        $(document).on('keydown', function(e) {
+            // Se o foco estiver num campo de texto (textarea/input), deixa o comportamento padrão
+            if ($(e.target).is('input, textarea')) return;
+
+            if (e.which === 13) { // Tecla Enter (Fim do Bipe)
+                let codigoLimpo = bufferBipe.trim().toUpperCase();
+
+                if (codigoLimpo.length > 0) {
+                    console.log("%c[AURA] Bipe Detectado: " + codigoLimpo, "color: #f59e0b; font-weight: bold;");
+                    processarBipeUnificado(codigoLimpo);
+                }
+                bufferBipe = "";
+                e.preventDefault();
+            } else {
+                // Captura apenas caracteres válidos (ignora Shift, Alt, etc)
+                if (e.key.length === 1) {
+                    bufferBipe += e.key;
+                }
+            }
+        });
+
+        // --- 3. LÓGICA DE DECISÃO: ESTRATIFICAR VS EDITAR ---
+        function processarBipeUnificado(motivo) {
+            emTransicaoDeBipe = true;
+
+            // Decidimos qual endpoint chamar baseado no prefixo "SETUP-"
+            const ehSetup = motivo.startsWith("SETUP-");
+            const urlEndpoint = ehSetup ? '/Fuji/ProcessarBipeSetup' : '/Fuji/SalvarJustificativa';
+
+            // Preparamos o objeto de dados (ajustado para os dois tipos de controller)
+            const dados = ehSetup
+                ? { Linha: linha, MotivoBipado: motivo, Produto: $('#nomePrograma').text().split(' [')[0], Lado: (linha === 'SMD1' ? 'T' : 'B') }
+                : { id: idParadaAtualAtiva, motivo: motivo };
+
+            console.log(`[AURA] Enviando para: ${urlEndpoint}`, dados);
+
+            $.ajax({
+                url: urlEndpoint,
+                type: 'POST',
+                // Se for Setup mandamos JSON, se for Justificativa mandamos Form normal
+                data: ehSetup ? JSON.stringify(dados) : dados,
+                contentType: ehSetup ? 'application/json' : 'application/x-www-form-urlencoded',
+        success: function(res) {
+            if (res.success) {
+                if (ehSetup) {
+                    idParadaAtualAtiva = res.idNovo;
+                    // DISPARA O OVERLAY IMEDIATAMENTE USANDO A HORA ATUAL
+                    gerenciarOverlaySetup(motivo, res.timestampInicio);
+                } else {
+                    // Se for justificativa normal (ex: REUNIAO), fecha o overlay se estiver aberto
+                    gerenciarOverlaySetup(null, null);
+                }
+
+                $('#motivoParada').text(motivo).addClass('text-warning');
+                if (somAtivado) document.getElementById('audioSucesso').play();
+
+                console.log(`%c[AURA] Sucesso: ${motivo}`, "color: #10b981; font-weight: bold;");
+
+                setTimeout(() => { emTransicaoDeBipe = false; }, 5000);
+            }
+        },
+                error: function() {
+                    console.error("[AURA] Erro de comunicação.");
+                    emTransicaoDeBipe = false;
+                }
+            });
+        }
+
+
+        // Variável global para armazenar a última eficiência calculada
+                let ultimaEficienciaGeral = 0;
+
+                // Função que decide qual som tocar
+                function tocarSomPerformance() {
+                    // Se o som não foi ativado pelo clique, tentamos avisar no console
+                    if (!somAtivado) {
+                        console.warn("Tentativa de tocar som bloqueada: O operador precisa clicar no ícone de som primeiro.");
+                        return;
+                    }
+
+                    const somSucesso = document.getElementById('audioSucesso');
+                    const somAlerta = document.getElementById('audioAlerta');
+
+                    const somParaTocar = (ultimaEficienciaGeral >= 85) ? somSucesso : somAlerta;
+
+                    if (somParaTocar) {
+                        somParaTocar.currentTime = 0;
+                        somParaTocar.play().catch(e => console.error("Erro ao reproduzir áudio:", e));
+                        console.log("Som executado. Eficiência atual:", ultimaEficienciaGeral + "%");
+                    }
+                }
+
+                // Lógica para ativar o som (Interação do Usuário)
+                $(document).on('click', '#statusConexaoContainer', function() {
+                    abrirFullscreen();
+                    somAtivado = true;
+
+                    if (somAtivado) {
+                        $('#btnSom').removeClass('bi-volume-mute-fill text-secondary').addClass('bi-volume-up-fill text-primary');
+                        // Toca e pausa um som imediatamente para o navegador liberar o canal de áudio
+                        const s = document.getElementById('audioSucesso');
+                        s.play().then(() => { s.pause(); s.currentTime = 0; });
+                        console.log("Áudio desbloqueado e ativado.");
+                    } else {
+                        $('#btnSom').removeClass('bi-volume-up-fill text-primary').addClass('bi-volume-mute-fill text-secondary');
+                        console.log("Áudio silenciado.");
+                    }
+                });
+
+                        function abrirFullscreen() {
+            let elem = document.documentElement; // Pega a página inteira
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari/Chrome antigo */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+
+                // Configura o intervalo de 15 minutos
+                setInterval(tocarSomPerformance, 15 * 60 * 1000);
+
+
+                $(document).ready(function() {
+                    abrirFullscreen();
+                    atualizar();
+                    setInterval(atualizar, 5000);
+                        const opcoesData = { day: '2-digit', month: '2-digit', year: 'numeric' };
+       
+
+        // 2. Atualiza o Relógio a cada 1 segundo
+            setInterval(() => {
+                    $('#dataHeader').text(new Date().toLocaleDateString('pt-BR', opcoesData));
+                    $('#relogioHeader').text(new Date().toLocaleTimeString('pt-BR'));
+            }, 1000)
+
+
+
+                });
+
+
+
+                $(document).on('shown.bs.modal', '#modalJustificativa', function () {
+                    $('#inputMotivoReal').focus();
+                });
+
+                        $('#inputMotivoReal').on('keypress', function (e) {
+            if (e.which == 13) { // 13 é o código da tecla Enter
+                e.preventDefault(); // Evita quebra de linha no campo
+                salvarJustificativaManual(); // Chama sua função que usa o endpoint 'EditarJustificativa'
+            }
+        });
+    </script>
+</body>
+</html>

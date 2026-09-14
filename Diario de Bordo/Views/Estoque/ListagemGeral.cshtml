@@ -1,0 +1,159 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.Estoque.ItemEstoque>
+
+<div class="container-fluid px-3 px-md-5 py-4">
+    @* Cabeçalho Adaptável *@
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom gap-3">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Estoque" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-circle me-3" title="Voltar ao Início">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold text-dark m-0 fs-4 fs-md-2">Inventário Geral</h2>
+                <p class="text-muted m-0 small text-uppercase d-none d-sm-block">Spare Parts e Consumíveis SMT</p>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="ExportarExcel" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold shadow-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Exportar
+            </a>
+            <a asp-action="CadastrarItem" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-semibold shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i>Novo
+            </a>
+        </div>
+    </div>
+
+    @* Busca com estilo moderno *@
+    <div class="mb-4">
+        <div class="input-group input-group-lg bg-white shadow-sm rounded-3 overflow-hidden border">
+            <span class="input-group-text bg-transparent border-0 text-muted"><i class="bi bi-search"></i></span>
+            <input type="text" id="mainSearch" class="form-control border-0 shadow-none"
+                   placeholder="P/N, Descrição, Máquina..."
+                   autocomplete="off">
+        </div>
+        <div id="searchCount" class="text-muted small mt-2 fw-light ps-1">Exibindo todos os itens</div>
+    </div>
+
+    @* Tabela Otimizada *@
+    <div class="table-responsive shadow-sm rounded-3">
+        <table class="table align-middle bg-white mb-0" id="itemsTable">
+            <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-3" style="width: 60px;">Item</th>
+                    <th>Identificação</th> @* Agrupado para Mobile *@
+                    <th class="d-none d-lg-table-cell">Fabricante</th>
+                    <th class="text-center">Saldo</th>
+                    <th class="d-none d-md-table-cell">Localização</th>
+                    <th class="text-end pe-3">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="border-0">
+                @foreach (var item in Model)
+                {
+                    <tr class="item-row border-bottom border-light">
+                        <td class="ps-3">
+                            <div class="rounded-3 border d-flex align-items-center justify-content-center overflow-hidden bg-light"
+                                 style="width: 48px; height: 48px;">
+                                @if (!string.IsNullOrEmpty(item.FotoPath))
+                                {
+                                    <img src="@Url.Action("VerFoto", "Estoque", new { path = item.FotoPath })"
+                                         style="width: 100%; height: 100%; object-fit: cover;"
+                                         onerror="this.src='/img/placeholder-item.png';" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-box text-muted opacity-50"></i>
+                                }
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="fw-bold text-dark">@item.PartNumber</div>
+                            <div class="text-muted small text-truncate d-block" style="max-width: 200px;">@item.Descricao</div>
+                            <div class="d-md-none mt-1">
+                                <span class="badge bg-light text-dark border fw-normal" style="font-size: 0.65rem;">@item.FabricanteEquipamento</span>
+                                <span class="text-primary fw-bold ms-1" style="font-size: 0.7rem;"><i class="bi bi-geo-alt"></i> @item.Localizacao</span>
+                            </div>
+                        </td>
+
+                        <td class="d-none d-lg-table-cell text-muted">@item.FabricanteEquipamento</td>
+
+                        <td class="text-center">
+                            @{
+                                var critico = item.QuantidadeAtual <= item.EstoqueMinimo;
+                            }
+                            <div class="fw-bold @(critico ? "text-danger" : "text-dark")">
+                                @item.QuantidadeAtual.ToString("N0")
+                            </div>
+                            <small class="text-muted d-block" style="font-size: 0.65rem;">@item.Unidade</small>
+                        </td>
+
+                        <td class="d-none d-md-table-cell">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">
+                                @item.Localizacao
+                            </span>
+                        </td>
+
+                        <td class="text-end pe-3">
+                            <a asp-action="Editar" asp-route-id="@item.Id"
+                               class="btn btn-light btn-sm rounded-circle shadow-sm" title="Editar">
+                                <i class="bi bi-pencil text-dark"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .item-row {
+        transition: all 0.2s;
+    }
+
+        .item-row:hover {
+            background-color: #f1f4f9 !important;
+        }
+
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        background: white;
+    }
+
+    /* Ajuste para telas pequenas */
+    @@media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        .table td {
+            padding: 12px 8px;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('mainSearch').addEventListener('input', function () {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.item-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const matches = text.includes(searchTerm);
+            row.style.display = matches ? "" : "none";
+            if (matches) visibleCount++;
+        });
+
+        const countDisplay = document.getElementById('searchCount');
+        countDisplay.innerText = searchTerm === ""
+            ? "Exibindo todos os itens"
+            : `Encontrado(s) ${visibleCount} item(ns)`;
+    });
+</script>

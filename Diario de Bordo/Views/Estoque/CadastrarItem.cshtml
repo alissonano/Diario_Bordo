@@ -1,0 +1,273 @@
+﻿@model Diario_de_Bordo.Models.Estoque.ItemEstoque
+
+@{
+    ViewData["Title"] = "Cadastrar Novo Item";
+}
+
+@* 1. Bibliotecas Necessárias *@
+<script src="~/lib/html5-qrcode/html5-qrcode.min.js"></script>
+<script src="~/lib/qrcodejs/qrcode.min.js"></script>
+
+<div class="container-fluid px-3 py-3">
+    @* Cabeçalho Otimizado *@
+    <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+        <a asp-action="ListagemGeral" class="btn btn-light border btn-lg rounded-circle me-3 shadow-sm" title="Voltar">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h4 class="fw-bold text-dark m-0">Novo Cadastro</h4>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Inventário SMT</span>
+        </div>
+    </div>
+
+    <form asp-action="CadastrarItem" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            @* Seção de Foto - Primeiro no Mobile *@
+            <div class="col-12 col-md-3 order-md-2">
+                <div class="card border-0 shadow-sm bg-white p-3 text-center rounded-4 h-100">
+                    <label class="form-label small fw-bold text-secondary text-uppercase mb-3">Foto do Material</label>
+                    <div class="mb-3 d-flex justify-content-center">
+                        <div class="position-relative">
+                            <img id="preview" src="/img/placeholder-item.png"
+                                 class="rounded-4 border shadow-sm object-fit-cover"
+                                 style="width: 160px; height: 160px; background-color: #f8f9fa;"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/160x160?text=Sem+Foto';" />
+
+                            <label for="FotoArquivo" class="btn btn-primary btn-lg position-absolute bottom-0 end-0 rounded-circle shadow-lg d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border: 3px solid white;">
+                                <i class="bi bi-camera-fill"></i>
+                            </label>
+                        </div>
+                    </div>
+                    <input type="file" id="FotoArquivo" name="FotoArquivo" class="d-none" accept="image/*" onchange="previewImage(this)" />
+                    <p class="text-muted small mb-0">Toque para capturar imagem</p>
+                </div>
+            </div>
+
+            @* Formulário de Dados *@
+            <div class="col-12 col-md-9 order-md-1">
+                <div class="card border-0 shadow-sm bg-white p-4 rounded-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <h6 class="text-primary fw-bold mb-0 border-bottom pb-2"><i class="bi bi-tag me-2"></i>Identificação</h6>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="codigoean" class="form-label small fw-bold text-muted">EAN / BARCODE</label>
+                            <div class="input-group">
+                                <input asp-for="codigoean" id="inputEAN" class="form-control form-control-lg bg-light border-0 rounded-start-3 shadow-none" placeholder="Bipe o código" />
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="PartNumber" class="form-label small fw-bold text-muted text-uppercase">Part Number *</label>
+                            <input asp-for="PartNumber" id="inputPN" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none fw-bold" required />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Descricao" class="form-label small fw-bold text-muted text-uppercase">Descrição *</label>
+                            <input asp-for="Descricao" id="inputDesc" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none" required />
+                        </div>
+
+                        @* Container do Leitor de Câmera (Fica visível apenas quando ativado) *@
+                        <div class="col-12">
+                            <div id="reader-container" style="display:none;" class="mt-2 border rounded-4 overflow-hidden shadow-lg bg-dark">
+                                <div id="reader" style="width: 100%;"></div>
+                                <button type="button" class="btn btn-danger w-100 rounded-0 fw-bold py-2" onclick="pararLeitor()">FECHAR LEITOR</button>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="text-primary fw-bold mt-2 mb-0 border-bottom pb-2"><i class="bi bi-geo-alt me-2"></i>Logística</h6>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Tipo" class="form-label small fw-bold text-muted">TIPO DE ITEM</label>
+                            <select asp-for="Tipo" class="form-select form-select-lg bg-light border-0 rounded-3 shadow-none"
+                                    asp-items="Html.GetEnumSelectList<Diario_de_Bordo.Models.Estoque.TipoEquipamento>()">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="FabricanteEquipamento" class="form-label small fw-bold text-muted">FABRICANTE</label>
+                            <input asp-for="FabricanteEquipamento" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="FornecedorId" class="form-label small fw-bold text-muted">FORNECEDOR</label>
+                            <select asp-for="FornecedorId" class="form-select form-select-lg bg-light border-0 rounded-3 shadow-none"
+                                    asp-items="ViewBag.Fornecedores">
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Localizacao" class="form-label small fw-bold text-muted">LOCALIZAÇÃO (ALMOXARIFADO)</label>
+                            <input asp-for="Localizacao" id="inputLoc" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none" placeholder="Ex: Corredor A-02" />
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="QuantidadeAtual" class="form-label small fw-bold text-muted">QTD ATUAL</label>
+                            <input asp-for="QuantidadeAtual" type="number" step="0.01" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none text-primary fw-bold" />
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="EstoqueMinimo" class="form-label small fw-bold text-muted">QTD MÍNIMA</label>
+                            <input asp-for="EstoqueMinimo" type="number" step="0.01" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none text-danger fw-bold" />
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="Unidade" class="form-label small fw-bold text-muted">UNIDADE</label>
+                            <select asp-for="Unidade" class="form-select form-select-lg bg-light border-0 rounded-3 shadow-none"
+                                    asp-items="Html.GetEnumSelectList<Diario_de_Bordo.Models.Estoque.UnidadeMedida>()"></select>
+                        </div>
+
+                        <div class="col-6 col-md-3">
+                            <label asp-for="ValorUnitario" class="form-label small fw-bold text-muted">VALOR (R$)</label>
+                            <input asp-for="ValorUnitario" type="number" step="0.01" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none text-success" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Botões de Ação Dinâmicos *@
+        <div class="mt-4 row g-2 mb-5">
+            <div class="col-12 col-md-4 order-md-2">
+                <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold py-3 shadow">
+                    <i class="bi bi-save me-2"></i>SALVAR ITEM
+                </button>
+            </div>
+            <div class="col-12 col-md-4 order-md-1">
+                <button type="button" class="btn btn-outline-dark btn-lg w-100 rounded-3 fw-bold py-3 border-2" onclick="gerarEtiquetaPreviewLocal()">
+                    <i class="bi bi-qr-code me-2"></i>ETIQUETA
+                </button>
+            </div>
+            <div class="col-12 col-md-4 order-md-3 text-center">
+                <a asp-action="ListagemGeral" class="btn btn-link text-muted fw-bold text-decoration-none py-3">CANCELAR</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@* MODAL DA ETIQUETA (Inalterado funcionalmente) *@
+<div class="modal fade" id="modalEtiqueta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="max-width: 380px; margin: auto;">
+            <div class="modal-header bg-dark text-white border-0">
+                <h6 class="modal-title fw-bold"><i class="bi bi-printer me-2"></i>PREVIEW DA ETIQUETA</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-white p-3">
+                <div id="etiquetaReal" class="mx-auto p-2" style="width: 320px; height: 180px; border: 1px solid #eee; position: relative; font-family: Arial, sans-serif; background: white;">
+                    <div class="d-flex justify-content-between border-bottom pb-1 mb-2" style="font-size: 10px; font-weight: bold; color: #333;">
+                        <span>GBR COMPONENTES SMT</span>
+                        <span>@DateTime.Now.ToString("dd/MM/yy")</span>
+                    </div>
+                    <div class="d-flex">
+                        <div id="viewQrCodeLocal" class="me-2 bg-white d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;"></div>
+                        <div class="flex-grow-1" style="line-height: 1.2;">
+                            <label style="font-size: 8px; font-weight: bold; color: #666; display: block; margin-bottom: 0;">P/N FABRICANTE:</label>
+                            <span id="viewPN" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px; word-break: break-all;"></span>
+
+                            <label style="font-size: 8px; font-weight: bold; color: #666; display: block; margin-bottom: 0;">DESCRIÇÃO:</label>
+                            <span id="viewDesc" style="font-size: 10px; display: block; height: 32px; overflow: hidden; margin-bottom: 4px;"></span>
+
+                            <div class="mt-1 text-center" style="background: #000; color: #fff; padding: 2px; border-radius: 2px;">
+                                <small style="font-size: 7px; display: block; text-transform: uppercase;">Localização</small>
+                                <strong id="viewLoc" style="font-size: 16px;"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" onclick="window.print()">
+                    <i class="bi bi-printer-fill me-2"></i>IMPRIMIR
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) { document.getElementById('preview').src = e.target.result; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    let html5QrCode;
+    function iniciarLeitor() {
+        const container = document.getElementById('reader-container');
+        container.style.display = 'block';
+        if (html5QrCode) { html5QrCode.clear(); }
+        html5QrCode = new Html5QrCode("reader");
+        const config = { fps: 20, qrbox: { width: 250, height: 150 } };
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            document.getElementById('inputEAN').value = decodedText;
+            pararLeitor();
+        }).catch(err => alert("Erro ao abrir câmera. Verifique permissões HTTPS."));
+    }
+
+    function pararLeitor() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('reader-container').style.display = 'none';
+            });
+        }
+    }
+
+    function gerarEtiquetaPreviewLocal() {
+        const pn = document.getElementById('inputPN').value;
+        const desc = document.getElementById('inputDesc').value;
+        const loc = document.getElementById('inputLoc').value;
+
+        if (!pn) { alert("⚠️ Informe o Part Number primeiro."); return; }
+
+        document.getElementById('viewPN').innerText = pn;
+        document.getElementById('viewDesc').innerText = desc || "N/A";
+        document.getElementById('viewLoc').innerText = loc || "N/A";
+
+        const qrContainer = document.getElementById('viewQrCodeLocal');
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+            text: pn,
+            width: 100, height: 100,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        var myModal = new bootstrap.Modal(document.getElementById('modalEtiqueta'));
+        myModal.show();
+    }
+</script>
+
+<style>
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #etiquetaReal, #etiquetaReal * {
+            visibility: visible;
+        }
+
+        #etiquetaReal {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    }
+
+    .form-control-lg, .form-select-lg {
+        font-size: 1rem !important;
+    }
+</style>

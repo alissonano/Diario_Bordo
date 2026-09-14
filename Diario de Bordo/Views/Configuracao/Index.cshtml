@@ -1,0 +1,313 @@
+﻿@model ConfiguracaoLinhaViewModel
+
+@{
+    ViewData["Title"] = "Configuração de Linha - " + Model.Configuracao.Linha;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-cogs text-primary"></i> Painel de Configuração: <span class="text-secondary">@Model.Configuracao.Linha</span></h2>
+        <button type="button" onclick="salvarTudo()" class="btn btn-success btn-lg shadow">
+            <i class="fas fa-save me-2"></i> SALVAR CONFIGURAÇÕES
+        </button>
+    </div>
+
+    <form id="formConfiguracao">
+        <input type="hidden" id="txtLinha" value="@Model.Configuracao.Linha" />
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4 border-0">
+                    <div class="card-header bg-dark text-white fw-bold">Configurações Base</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Custo de Parada (R$/h)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-success fw-bold">R$</span>
+                                <input type="number" id="numTaxaHora" class="form-control" value="@Model.Configuracao.TaxaHora" step="0.01">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tolerância Watchdog (X * Takt)</label>
+                            <input type="number" id="numTolerancia" class="form-control" value="@Model.Configuracao.ToleranciaTakt">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Meta de OEE Alvo (%)</label>
+                            <div class="input-group">
+                                <input type="number" id="numMetaOEE" class="form-control" value="@Model.Configuracao.MetaOee">
+                                <span class="input-group-text bg-light fw-bold">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm mb-4 border-0">
+                    <div class="card-header bg-primary text-white fw-bold">Definição de Turnos Ativos (Manaus)</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ativo</th>
+                                        <th>Turno</th>
+                                        <th>Início</th>
+                                        <th>Fim</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><input type="checkbox" class="form-check-input chk-turno-ativo" id="chkT1" @(Model.Configuracao.Turno1Ativo ? "checked" : "")></td>
+                                        <td class="fw-bold">1º Turno <span id="badgeT1" class="badge bg-info text-dark ms-2">--:--</span></td>
+                                        <td><input type="time" id="timeT1I" class="form-control time-shift" value="@Model.Configuracao.T1Inicio"></td>
+                                        <td><input type="time" id="timeT1F" class="form-control time-shift" value="@Model.Configuracao.T1Fim"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="checkbox" class="form-check-input chk-turno-ativo" id="chkT2" @(Model.Configuracao.Turno2Ativo ? "checked" : "")></td>
+                                        <td class="fw-bold">2º Turno <span id="badgeT2" class="badge bg-info text-dark ms-2">--:--</span></td>
+                                        <td><input type="time" id="timeT2I" class="form-control time-shift" value="@Model.Configuracao.T2Inicio"></td>
+                                        <td><input type="time" id="timeT2F" class="form-control time-shift" value="@Model.Configuracao.T2Fim"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="checkbox" class="form-check-input chk-turno-ativo" id="chkT3" @(Model.Configuracao.Turno3Ativo ? "checked" : "")></td>
+                                        <td class="fw-bold">3º Turno <span id="badgeT3" class="badge bg-info text-dark ms-2">--:--</span></td>
+                                        <td><input type="time" id="timeT3I" class="form-control time-shift" value="@Model.Configuracao.T3Inicio"></td>
+                                        <td><input type="time" id="timeT3F" class="form-control time-shift" value="@Model.Configuracao.T3Fim"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4 border-warning border-2">
+            <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark"><i class="fas fa-clock"></i> Janelas de Paradas Planejadas</span>
+                <button type="button" class="btn btn-dark btn-sm" onclick="adicionarLinhaTabela()">
+                    <i class="fas fa-plus"></i> Adicionar Evento
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0" id="tblParadasPlanejadas">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Descrição do Evento</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th class="text-center">Dias da Semana</th>
+                            <th style="width: 80px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.ParadasPlanejadas.Count; i++)
+                        {
+                            var p = Model.ParadasPlanejadas[i];
+                            <tr>
+                                <td class="ps-4"><input type="text" class="form-control desc-planejada" value="@p.Descricao"></td>
+                                <td><input type="time" class="form-control inicio-planejada" value="@p.HoraInicio"></td>
+                                <td><input type="time" class="form-control fim-planejada" value="@p.HoraFim"></td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="checkbox" class="btn-check chk-dia chk-seg" id="seg_@i" @(p.Seg ? "checked" : "")><label class="btn btn-outline-primary" for="seg_@i">S</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-ter" id="ter_@i" @(p.Ter ? "checked" : "")><label class="btn btn-outline-primary" for="ter_@i">T</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-qua" id="qua_@i" @(p.Qua ? "checked" : "")><label class="btn btn-outline-primary" for="qua_@i">Q</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-qui" id="qui_@i" @(p.Qui ? "checked" : "")><label class="btn btn-outline-primary" for="qui_@i">Q</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-sex" id="sex_@i" @(p.Sex ? "checked" : "")><label class="btn btn-outline-primary" for="sex_@i">S</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-sab" id="sab_@i" @(p.Sab ? "checked" : "")><label class="btn btn-outline-primary" for="sab_@i">S</label>
+                                        <input type="checkbox" class="btn-check chk-dia chk-dom" id="dom_@i" @(p.Dom ? "checked" : "")><label class="btn btn-outline-primary" for="dom_@i">D</label>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerLinha(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        let rowCount = @Model.ParadasPlanejadas.Count;
+
+        function tToM(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+        }
+
+        function formatarMinutos(totalMinutes) {
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            return `${h}h ${m.toString().padStart(2, '0')}m`;
+        }
+
+        // --- LÓGICA DE CÁLCULO MELHORADA ---
+        function atualizarBadgesHorasUteis() {
+            const paradas = [];
+            const hojeIndex = new Date().getDay();
+            const diasMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+            const hojeProp = diasMap[hojeIndex];
+
+            $('#tblParadasPlanejadas tbody tr').each(function() {
+                const row = $(this);
+                const ini = row.find('.inicio-planejada').val();
+                const fim = row.find('.fim-planejada').val();
+
+                if (row.find(`.chk-${hojeProp}`).is(':checked') && ini && fim) {
+                    paradas.push({ ini: tToM(ini), fim: tToM(fim) });
+                }
+            });
+
+            const turnos = [
+                { id: '1', ini: $('#timeT1I').val(), fim: $('#timeT1F').val() },
+                { id: '2', ini: $('#timeT2I').val(), fim: $('#timeT2F').val() },
+                { id: '3', ini: $('#timeT3I').val(), fim: $('#timeT3F').val() }
+            ];
+
+            turnos.forEach(t => {
+                if (!t.ini || !t.fim) return;
+
+                let mIni = tToM(t.ini);
+                let mFim = tToM(t.fim);
+                let duracaoTotal = mFim - mIni;
+                if (duracaoTotal < 0) duracaoTotal += 1440;
+
+                let desconto = 0;
+                paradas.forEach(p => {
+                    let pIni = p.ini;
+                    let pFim = p.fim;
+                    let pDur = pFim - pIni;
+                    if (pDur < 0) pDur += 1440;
+
+                    // Cálculo de Intersecção (Overlap)
+                    // Consideramos o turno começando em mIni e terminando em mIni + duracaoTotal
+                    // Consideramos a parada começando em pIni e terminando em pIni + pDur
+
+                    // Ajuste para paradas que podem estar no "dia seguinte" em relação ao início do turno
+                    let overlaps = [
+                        { s: pIni, e: pIni + pDur },
+                        { s: pIni + 1440, e: pIni + pDur + 1440 },
+                        { s: pIni - 1440, e: pIni + pDur - 1440 }
+                    ];
+
+                    overlaps.forEach(over => {
+                        let startMax = Math.max(mIni, over.s);
+                        let endMin = Math.min(mIni + duracaoTotal, over.e);
+                        let intersection = endMin - startMax;
+                        if (intersection > 0) {
+                            desconto += intersection;
+                        }
+                    });
+                });
+
+                const uteis = duracaoTotal - desconto;
+                const $b = $(`#badgeT${t.id}`);
+                $b.text(`${formatarMinutos(uteis)} úteis`);
+                $b.toggleClass('bg-danger text-white', uteis <= 0).toggleClass('bg-info text-dark', uteis > 0);
+            });
+        }
+
+        function adicionarLinhaTabela() {
+            const i = rowCount++;
+            const row = `<tr>
+                <td class="ps-4"><input type="text" class="form-control desc-planejada" placeholder="Novo Evento"></td>
+                <td><input type="time" class="form-control inicio-planejada"></td>
+                <td><input type="time" class="form-control fim-planejada"></td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="checkbox" class="btn-check chk-dia chk-seg" id="seg_${i}" checked><label class="btn btn-outline-primary" for="seg_${i}">S</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-ter" id="ter_${i}" checked><label class="btn btn-outline-primary" for="ter_${i}">T</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-qua" id="qua_${i}" checked><label class="btn btn-outline-primary" for="qua_${i}">Q</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-qui" id="qui_${i}" checked><label class="btn btn-outline-primary" for="qui_${i}">Q</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-sex" id="sex_${i}" checked><label class="btn btn-outline-primary" for="sex_${i}">S</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-sab" id="sab_${i}"><label class="btn btn-outline-primary" for="sab_${i}">S</label>
+                        <input type="checkbox" class="btn-check chk-dia chk-dom" id="dom_${i}"><label class="btn btn-outline-primary" for="dom_${i}">D</label>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerLinha(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+            $('#tblParadasPlanejadas tbody').append(row);
+            atualizarBadgesHorasUteis();
+        }
+
+        function removerLinha(btn) {
+            $(btn).closest('tr').remove();
+            atualizarBadgesHorasUteis();
+        }
+
+        // Escuta mudanças em inputs de tempo e nos checkboxes de dias
+        $(document).on('change', '.time-shift, .inicio-planejada, .fim-planejada, .chk-dia', atualizarBadgesHorasUteis);
+
+        function salvarTudo() {
+            const linha = $('#txtLinha').val();
+            const payload = {
+                Configuracao: {
+                    Linha: linha,
+                    TaxaHora: parseFloat($('#numTaxaHora').val()) || 0,
+                    ToleranciaTakt: parseInt($('#numTolerancia').val()) || 3,
+                    MetaOee: parseFloat($('#numMetaOEE').val()) || 0,
+                    Turno1Ativo: $('#chkT1').is(':checked'),
+                    T1Inicio: $('#timeT1I').val(),
+                    T1Fim: $('#timeT1F').val(),
+                    Turno2Ativo: $('#chkT2').is(':checked'),
+                    T2Inicio: $('#timeT2I').val(),
+                    T2Fim: $('#timeT2F').val(),
+                    Turno3Ativo: $('#chkT3').is(':checked'),
+                    T3Inicio: $('#timeT3I').val(),
+                    T3Fim: $('#timeT3F').val()
+                },
+                ParadasPlanejadas: []
+            };
+
+            $('#tblParadasPlanejadas tbody tr').each(function() {
+                const row = $(this);
+                const desc = row.find('.desc-planejada').val();
+                const ini = row.find('.inicio-planejada').val();
+                const fim = row.find('.fim-planejada').val();
+
+                if (desc && ini && fim) {
+                    payload.ParadasPlanejadas.push({
+                        Linha: linha,
+                        Descricao: desc,
+                        HoraInicio: ini,
+                        HoraFim: fim,
+                        Seg: row.find('.chk-seg').is(':checked'),
+                        Ter: row.find('.chk-ter').is(':checked'),
+                        Qua: row.find('.chk-qua').is(':checked'),
+                        Qui: row.find('.chk-qui').is(':checked'),
+                        Sex: row.find('.chk-sex').is(':checked'),
+                        Sab: row.find('.chk-sab').is(':checked'),
+                        Dom: row.find('.chk-dom').is(':checked'),
+                        Ativo: true
+                    });
+                }
+            });
+
+            $.ajax({
+                url: '/Configuracao/SalvarConfiguracao',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function(res) {
+                    if (res.success) { alert("Salvo!"); location.reload(); }
+                    else alert("Erro: " + res.message);
+                }
+            });
+        }
+
+        $(document).ready(atualizarBadgesHorasUteis);
+    </script>
+}

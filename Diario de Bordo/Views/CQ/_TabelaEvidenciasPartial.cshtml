@@ -1,0 +1,30 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.CQEvidencia>
+
+<table class="table table-sm table-bordered align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>Posto</th>
+            <th>Item</th>
+            <th>Resultado</th>
+            <th>Comentário</th>
+            <th>Evidência</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ev in Model)
+        {
+            <tr>
+                <td>@ev.posto</td>
+                <td>@ev.item</td>
+                <td>@ev.resultado</td>
+                <td>@ev.comentario</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(ev.evidencia))
+                    {
+                        <a href="@ev.evidencia" target="_blank">Ver imagem</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

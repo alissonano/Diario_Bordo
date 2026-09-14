@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "Gráficos";
+    var usuario = ViewBag.UsuarioLogado ?? "Desconhecido";
+}
+
+<div class="container mt-4">
+    <h2>Gráficos - Usuário: @usuario</h2>
+
+    <form id="formFiltro" method="post" asp-controller="Graficos" asp-action="Filtrar">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="dataInicio">Data Início</label>
+                <input type="text" id="dataInicio" name="dataInicio" class="form-control" value="@ViewBag.DataInicio" />
+            </div>
+            <div class="col-md-4">
+                <label for="dataFim">Data Fim</label>
+                <input type="text" id="dataFim" name="dataFim" class="form-control" value="@ViewBag.DataFim" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card p-3 shadow-sm">
+        <canvas id="graficoAtividades" height="100"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Inicializar datas padrão
+        const hoje = new Date();
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(hoje.getDate() - 30);
+
+        flatpickr("#dataInicio", {
+            dateFormat: "Y-m-d", // valor enviado ao backend
+            altInput: true,
+            altFormat: "d/m/Y", // exibe no padrão brasileiro
+            defaultDate: "@ViewBag.DataInicio"
+        });
+
+        flatpickr("#dataFim", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            defaultDate: "@ViewBag.DataFim"
+        });
+
+        // Dados vindos do controller (ViewBag ou API)
+        const dados = @Html.Raw(ViewBag.DadosJson ?? "[]");
+
+        // Preparar dados para o Chart.js
+        const labels = dados.map(d => new Date(d.inicio));
+        const valores = dados.map(d => d.totalHoras);
+
+        const ctx = document.getElementById('graficoAtividades').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Horas de Atividade',
+                    data: valores,
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(0, 0, 255, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'hour', // eixo em horas
+                            displayFormats: {
+                                hour: 'dd/MM HH:mm'
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Horas'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

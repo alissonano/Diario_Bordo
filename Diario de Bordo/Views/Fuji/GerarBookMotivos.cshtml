@@ -1,0 +1,251 @@
+﻿@model IEnumerable<Diario_de_Bordo.Models.MotivoParada>
+
+@{
+    Layout = null;
+
+    // Lógica para criar o grupo único de SETUP
+    var motivosAgrupados = Model
+        .Select(m => new
+        {
+            Dados = m,
+            // Categoria Virtual: Se for SETUP-, força uma categoria única
+            CategoriaExibicao = m.descricao.StartsWith("SETUP", StringComparison.OrdinalIgnoreCase)
+                                ? "PROCESSO DE SETUP"
+                                : m.categoria
+        })
+        .GroupBy(x => x.CategoriaExibicao)
+        // Ordena para que o SETUP sempre apareça primeiro, seguido pelas outras categorias
+        .OrderBy(g => g.Key.Contains("SETUP") ? 0 : 1)
+        .ThenBy(g => g.Key);
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Gerenciar Motivos de Parada</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .category-header {
+            background: #334155;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 30px 0 20px 0;
+            text-transform: uppercase;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Cor diferenciada para o cabeçalho de SETUP */
+        .header-setup {
+            background: #f59e0b; /* Laranja SMT */
+            color: #000;
+        }
+
+        .qr-card {
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #fff;
+            position: relative;
+            page-break-inside: avoid;
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            min-height: 260px;
+        }
+
+            .qr-card:hover {
+                transform: translateY(-5px);
+                border-color: #94a3b8;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            }
+
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+            .qr-container canvas, .qr-container img {
+                width: 140px !important;
+                height: 140px !important;
+            }
+
+        .motivo-titulo {
+            font-weight: bold;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            margin-top: 10px;
+            color: #1e293b;
+            height: 2.4em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .badge-setup {
+            background-color: #000;
+            color: #f59e0b;
+        }
+
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .category-header {
+                background: #eee !important;
+                color: #000 !important;
+                border: 2px solid #000;
+                page-break-after: avoid;
+            }
+
+            .qr-card {
+                border: 1px solid #000;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-2 no-print">
+            <div>
+                <h1 class="fw-bold text-dark m-0">Razões de Parada - SMT</h1>
+                <p class="text-muted">Gerenciamento de QR Codes para o sistema AURA</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success btn-lg fw-bold" data-bs-toggle="modal" data-bs-target="#modalNovoMotivo">
+                    <i class="bi bi-plus-circle"></i> NOVO MOTIVO
+                </button>
+                <button onclick="window.print()" class="btn btn-primary btn-lg fw-bold">
+                    <i class="bi bi-printer"></i> IMPRIMIR PDF
+                </button>
+            </div>
+        </div>
+
+        @foreach (var grupo in motivosAgrupados)
+        {
+            <div class="category-header shadow-sm @(grupo.Key.Contains("SETUP") ? "header-setup" : "")">
+                <i class="bi @(grupo.Key.Contains("SETUP") ? "bi-stopwatch-fill" : "bi-tag-fill")"></i>
+                @grupo.Key
+                <span class="badge bg-dark ms-auto" style="font-size: 0.8rem;">@grupo.Count() itens</span>
+            </div>
+
+            <div class="row">
+                @foreach (var item in grupo)
+                {
+                    <div class="col-md-3" id="motivo-@item.Dados.id">
+                        <div class="qr-card shadow-sm">
+                            <button class="btn btn-sm btn-outline-danger btn-delete no-print border-0"
+                                    style="position:absolute; top:5px; right:5px;"
+                                    onclick="deletarMotivo(@item.Dados.id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            @if (item.Dados.descricao.StartsWith("SETUP-"))
+                            {
+                                <span class="badge badge-setup mb-2"><i class="bi bi-layers-half"></i> ESTRATIFICAÇÃO</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-muted border mb-2">JUSTIFICATIVA</span>
+                            }
+
+                            <div class="qr-container" data-descricao="@item.Dados.descricao" id="qr-@item.Dados.id"></div>
+
+                            <div class="motivo-titulo">@item.Dados.descricao</div>
+                            <div class="text-muted extra-small mt-1" style="font-size: 0.7rem;">CAT: @item.Dados.categoria | ID: #@item.Dados.id</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="modal fade" id="modalNovoMotivo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <form asp-action="AdicionarMotivo" asp-controller="Fuji" method="post">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title fw-bold">Novo Motivo de Parada</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Descrição do Motivo (QR CODE):</label>
+                            <input type="text" name="descricao" class="form-control form-control-lg text-uppercase" required placeholder="Ex: SETUP-LIMPEZA" maxlength="50">
+                            <small class="text-muted">Dica: Use <b>SETUP-</b> no início para agrupar em Estratificação.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Categoria Padrão (Banco):</label>
+                            <select name="categoria" class="form-select form-select-lg">
+                                <option value="PRODUCAO">OPERACIONAL / PRODUÇÃO</option>
+                                <option value="ENGENHARIA">ENGENHARIA / MANUTENÇÃO</option>
+                                <option value="QUALIDADE">QUALIDADE</option>
+                                <option value="LOGISTICA">LOGÍSTICA / ESTOQUE</option>
+                                <option value="OUTROS">OUTROS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success px-4 fw-bold">SALVAR NO BANCO</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/qrcodejs/qrcode.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            setTimeout(function() {
+                $('.qr-container').each(function () {
+                    var conteudo = $(this).data('descricao');
+                    if (conteudo) {
+                        new QRCode(this, {
+                            text: String(conteudo),
+                            width: 150,
+                            height: 150,
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    }
+                });
+            }, 300);
+        });
+
+        function deletarMotivo(id) {
+            if (confirm("Excluir este motivo?")) {
+                $.post('/Fuji/DeletarMotivo', { id: id }, function(res) {
+                    if (res.success) $(`#motivo-${id}`).fadeOut();
+                });
+            }
+        }
+    </script>
+</body>
+</html>

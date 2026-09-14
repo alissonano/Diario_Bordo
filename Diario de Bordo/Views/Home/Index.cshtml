@@ -1,0 +1,251 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    var usuario = Context.Session.GetString("UsuarioLogado") ?? "Colaborador";
+}
+
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.css" />
+<link rel="stylesheet" href="~/css/fonts-local.css" />
+
+<style>
+    :root {
+        --bg-body: #f4f7f9;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --primary-blue: #0056b3;
+    }
+
+    body {
+        background-color: var(--bg-body);
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Fallback nativo rápido */
+        color: var(--text-main);
+        overflow-x: hidden;
+    }
+
+    .dashboard-wrapper {
+        padding: 2.5rem 1rem;
+        max-width: 1300px;
+        margin: 0 auto;
+    }
+
+    /* Bento Grid Layout */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .menu-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 2rem;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+        .menu-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border-color: var(--primary-blue);
+        }
+
+    .icon-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Estilos de Cores Locais */
+    .c-diario .icon-circle {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+
+    .c-graficos .icon-circle {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .c-cq .icon-circle {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .c-estoque .icon-circle {
+        background: #ecfeff;
+        color: #0891b2;
+    }
+
+    .c-stencil .icon-circle {
+        background: #fffbeb;
+        color: #d97706;
+    }
+
+    .c-relatorios .icon-circle {
+        background: #f1f5f9;
+        color: #475569;
+    }
+    /* Cor Personalizada para o Card de Folhas de Alimentação */
+    .c-folhas .icon-circle {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    .c-folhas:hover {
+        border-color: #6d28d9;
+    }
+
+    .card-h {
+        font-weight: 700;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-p {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .btn-link-custom {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--primary-blue);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Cor Personalizada para o Card Fuji */
+    .c-fuji .icon-circle {
+        background: #f5f3ff;
+        color: #7c3aed;
+    }
+
+    /* Animação para o indicador Live */
+
+    {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 1;
+    }
+
+    }
+
+    /* Efeito extra se o card for focado em erros */
+    .c-fuji:hover {
+        border-color: #7c3aed;
+    }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h1 class="fw-bold mb-0">Painel de Controle</h1>
+            <p class="text-muted">Bem-vindo, @usuario</p>
+        </div>
+        <div class="text-end d-none d-md-block">
+            <span class="badge bg-white text-dark border p-2">
+                <i class="bi bi-clock me-1 text-primary"></i> @DateTime.Now.ToString("HH:mm")
+            </span>
+        </div>
+    </div>
+
+    <div class="bento-grid">
+        <a asp-controller="Diario" asp-action="Index" class="menu-card c-diario">
+            <div class="icon-circle"><i class="bi bi-pencil-square"></i></div>
+            <div class="card-h">Diário de Bordo</div>
+            <div class="card-p">Registro de atividades técnicas e paradas de linha.</div>
+            <div class="btn-link-custom">Abrir Módulo <i class="bi bi-arrow-right"></i></div>
+        </a>
+        <a asp-controller="Stencil" asp-action="Index" class="menu-card c-stencil">
+            <div class="icon-circle"><i class="bi bi-grid-3x3-gap"></i></div>
+            <div class="card-h">Stencil SMD</div>
+            <div class="card-p">Controle de uso e estado dos stencils de impressão.</div>
+            <div class="btn-link-custom">Consultar <i class="bi bi-arrow-right"></i></div>
+        </a>
+
+        <a asp-controller="CQ" asp-action="Index" class="menu-card c-cq">
+            <div class="icon-circle"><i class="bi bi-check-all"></i></div>
+            <div class="card-h">Qualidade</div>
+            <div class="card-p">Inspeções diárias e conformidade de produtos.</div>
+            <div class="btn-link-custom">Ir para CQ <i class="bi bi-arrow-right"></i></div>
+        </a>
+
+        <a asp-controller="Graficos" asp-action="Index" class="menu-card c-graficos">
+            <div class="icon-circle"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="card-h">Gráficos e KPIs</div>
+            <div class="card-p">Análise de performance e indicadores de manutenção.</div>
+            <div class="btn-link-custom">Ver Gráficos <i class="bi bi-arrow-right"></i></div>
+        </a>
+
+        <a asp-controller="Estoque" asp-action="Index" class="menu-card c-estoque">
+            <div class="icon-circle"><i class="bi bi-box-seam"></i></div>
+            <div class="card-h">Almoxarifado</div>
+            <div class="card-p">Gestão de peças e solicitações de materiais.</div>
+            <div id="localStockBadge"></div>
+            <div class="btn-link-custom">Acessar Estoque <i class="bi bi-arrow-right"></i></div>
+        </a>
+        <a asp-controller="Fuji" asp-action="Index" class="menu-card c-fuji">
+            <div class="icon-circle">
+                <i class="bi bi-broadcast"></i>
+            </div>
+            <div class="card-h d-flex justify-content-between align-items-center">
+                Status de Linha
+                <span class="badge rounded-pill bg-danger" style="font-size: 0.6rem; animation: pulse 2s infinite;">LIVE</span>
+            </div>
+            <div class="card-p">Monitoramento em tempo real das máquinas Fuji com alertas de erro (60s+).</div>
+            <div class="btn-link-custom">Ver Linhas <i class="bi bi-arrow-right"></i></div>
+        </a>
+        <a asp-controller="Setup" asp-action="Index" class="menu-card c-folhas">
+            <div class="icon-circle"><i class="bi bi-file-earmark-arrow-up"></i></div>
+            <div class="card-h">Folhas de Alimentação</div>
+            <div class="card-p">Importação e conversão de setups de feeders (Fuji, Panasonic, Assembleon).</div>
+            <div class="btn-link-custom">Importar Setup <i class="bi bi-arrow-right"></i></div>
+        </a>
+
+
+
+        <a asp-controller="Relatorios" asp-action="Index" class="menu-card c-relatorios">
+            <div class="icon-circle"><i class="bi bi-file-earmark-bar-graph"></i></div>
+            <div class="card-h">Relatórios</div>
+            <div class="card-p">Geração de documentos para auditoria e histórico.</div>
+            <div class="btn-link-custom">Extrair Dados <i class="bi bi-arrow-right"></i></div>
+        </a>
+    </div>
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // AJAX rápido usando a biblioteca jQuery já carregada localmente
+    $(document).ready(function() {
+        $.get('/Estoque/ObterDashboardData', function(data) {
+            if (data.success && data.itensBaixos > 0) {
+                $('#localStockBadge').html(`
+                    <div class="alert alert-warning py-1 px-2 mb-2" style="font-size: 0.75rem; border-radius: 8px;">
+                        <i class="bi bi-exclamation-triangle"></i> ${data.itensBaixos} itens em falta
+                    </div>
+                `);
+            }
+        });
+    });
+</script>

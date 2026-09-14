@@ -1,0 +1,557 @@
+﻿@model Diario_de_Bordo.Models.Report
+@using Newtonsoft.Json
+@using Diario_de_Bordo.Models
+
+@{
+    ViewData["Title"] = "Nova Atividade";
+    var usuarioLogado = ViewBag.UsuarioLogado ?? "";
+}
+
+<link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+<link href="~/lib/flatpickr/flatpickr.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --primary-color: #004a99;
+        --bg-body: #f4f7f6;
+    }
+
+    body {
+        background-color: var(--bg-body);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        color: #444;
+    }
+
+    .container-full {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px 40px;
+    }
+
+    /* Container Principal */
+    .bi-container {
+        background: #fff;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        border-left: 6px solid var(--primary-color);
+    }
+
+    label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #6c757d;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        border: 1px solid #ced4da;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border: none;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+    /* Estilo da Tabela de Histórico */
+    .table-custom-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .table-custom thead {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .table-custom th {
+        font-size: 12px;
+        text-transform: uppercase;
+        padding: 15px;
+        border: none;
+    }
+
+    /* Estilo da lista de anexos na modal */
+    #listaArquivosContainer .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #eee;
+    }
+
+    #popupSucesso {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2000;
+        background: #28a745;
+        color: white;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+</style>
+
+<div id="popupSucesso">Atividade registrada com sucesso!</div>
+
+<div class="container-full">
+    <h2 class="fw-bold mb-4 text-dark"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Nova Atividade</h2>
+
+    <div class="bi-container">
+        <form id="formNovaAtividade" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="technician" value="@usuarioLogado" />
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <label>Linha de Produção</label>
+                    <select asp-for="linha" class="form-select shadow-sm" required>
+                        <option>SMD-1</option>
+                        <option>SMD-2</option>
+                        <option>SMD-3</option>
+                        <option>SMD-4</option>
+                        <option>SMD-5</option>
+                        <option>SMD-6</option>
+                        <option>SMD-7</option>
+                        <option>SMD-8</option>
+                        <option>SMD-9</option>
+                        <option>SMD-10</option>
+                        <option>SERVIDOR</option>
+                        <option>NOZZLE CLEAN</option>
+                        <option>HEAD CLEAN</option>
+                        <option>FEEDER</option>
+                        <option>RAIO-X</option>
+                        <option>ROUTER-1</option>
+                        <option>ROUTER-2</option>
+                        <option>ROUTER-3</option>
+                        <option>ROUTER-4</option>
+                        <option>ROUTER-5</option>
+                        <option>ROUTER-6</option>
+                        <option>ROUTER-7</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Máquina</label>
+                    <select asp-for="maquina" class="form-select shadow-sm" required>
+                        <option>PROCESSO</option>
+                        <option>LOADER</option>
+                        <option>CONVEYOR</option>
+                        <option>PRINTER</option>
+                        <option>SPI</option>
+                        <option>RACK BUFFER</option>
+                        <option>NXT-III</option>
+                        <option>NXT-II</option>
+                        <option>NXT-R</option>
+                        <option>SERVIDOR</option>
+                        <option>PDA</option>
+                        <option>AOI</option>
+                        <option>REFLOW</option>
+                        <option>AX</option>
+                        <option>OPAL</option>
+                        <option>TOPAZ</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Classificação</label>
+                    <select asp-for="classificacao" class="form-select shadow-sm" required>
+                        <option>01-AJUSTE</option>
+                        <option>02-TROCA</option>
+                        <option>03-LIMPEZA</option>
+                        <option>04-LUBRIFICAÇÃO</option>
+                        <option>05-CALIBRAÇÃO</option>
+                        <option>06-DESOBSTRUÇÃO</option>
+                        <option>07-INSTALAÇÃO</option>
+                        <option>08-VERIFICAÇÃO</option>
+                        <option>09-MANUTENÇÃO PREVENTIVA</option>
+                        <option>10-MANUTENÇÃO CORRETIVA</option>
+                        <option>11-FOLHA DE SETUP</option>
+                        <option>12-INSTRUÇÃO DE TRABALHO</option>
+                        <option>13-NPI</option>
+                        <option>14-SETUP</option>
+                        <option>15-OTIMIZAÇÃO</option>
+                        <option>16-PROJETO</option>
+                        <option>17-PROGRAMAÇÃO</option>
+                        <option>18-SEM COMUNICAÇÃO SERVIDOR</option>
+                        <option>19-DEBUG</option>
+                        <option>20-VALIDAÇÃO</option>
+                        <option>21-OUTROS</option>
+                        <option>22-CONTROLE DE MEDIÇÃO DO PERFIL DO FORNO</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label>Início da Intervenção</label>
+                    <input type="text" id="timepickerInicio" name="inicio" class="form-control" placeholder="Data/Hora Início" required />
+                </div>
+
+                <div class="col-md-3">
+                    <label>Fim da Intervenção</label>
+                    <input type="text" id="timepickerFim" name="fim" class="form-control" placeholder="Data/Hora Fim" required />
+                </div>
+
+                <div class="col-md-12">
+                    <label>Relato Técnico da Atividade</label>
+                    <textarea asp-for="descricao" id="descricao" class="form-control" style="min-height: 120px;" required placeholder="Descreva o problema e a solução aplicada..."></textarea>
+                </div>
+
+                <div class="col-md-12 d-flex justify-content-between">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalFotos">
+                            <i class="bi bi-camera me-2"></i>Anexar Evidências
+                        </button>
+                        <button type="button" class="btn btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalEstoque">
+                            <i class="bi bi-box-seam me-2"></i>Solicitar Peças
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary px-5 py-2 shadow-sm">
+                        <i class="bi bi-check2-all me-2"></i>FINALIZAR REGISTRO
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-custom-container border-top border-primary border-4">
+        <h4 class="fw-bold mb-4 text-dark">Últimos Registros</h4>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Linha/Máquina</th>
+                        <th>Classificação</th>
+                        <th>Duração</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ViewBag.UltimasAtividades != null)
+                    {
+                        foreach (var item in ViewBag.UltimasAtividades)
+                        {
+                            // FILTRO: Só renderiza a linha se o técnico do registro for o mesmo logado
+                            if (item.technician == usuarioLogado)
+                            {
+                                var inicioLocal = item.inicio.AddHours(-1);
+                                var fimLocal = item.fim.AddHours(-1);
+
+                                <tr data-report-id="@item.report_id" class="linha-atividade" style="cursor:pointer;" onclick="abrirEvidencias(@item.report_id)">
+                                    <td class="fw-bold">@inicioLocal.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <div class="fw-bold">@item.linha</div>
+                                        <div class="text-muted small">@item.maquina</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">@item.classificacao</span></td>
+                                    <td class="text-primary fw-bold">@inicioLocal.ToString("HH:mm") <i class="bi bi-arrow-right mx-1"></i> @fimLocal.ToString("HH:mm")</td>
+                                    <td class="text-muted small" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@item.descricao</td>
+                                    <td>
+                                        <a href="@Url.Action("CriarRequisicao", "Estoque", new { reportId = item.report_id, tecnico = item.technician })"
+                                           class="btn btn-sm btn-warning shadow-sm">
+                                            <i class="bi bi-cart-plus"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalFotos" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">Evidências Fotográficas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Selecionar Arquivos</label>
+                    <input type="file" id="inputFotos" accept="image/*,application/pdf" multiple class="form-control" />
+                    <small class="text-muted">Imagens (JPG, PNG) ou PDF.</small>
+                </div>
+                <hr />
+                <h6>Arquivos para Envio:</h6>
+                <div id="listaArquivosContainer">
+                    <p class="text-muted py-3 text-center" id="msgSemFotos">Nenhum arquivo selecionado.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Concluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalEstoque" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Solicitar Peças para esta Atividade</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="row">
+                    <div class="col-md-5 border-end">
+                        <label class="fw-bold mb-2">Buscar no Estoque</label>
+                        <input type="text" id="inputBuscaPeca" class="form-control mb-3" placeholder="PN ou Descrição...">
+                        <div id="resBuscaPeca" class="list-group shadow-sm mb-4" style="max-height: 200px; overflow-y: auto;"></div>
+
+                        <div class="p-3 rounded bg-white border border-warning">
+                            <h6 class="fw-bold text-warning small">ITEM NÃO CADASTRADO</h6>
+                            <input type="text" id="avulsoDesc" class="form-control form-control-sm mb-2" placeholder="Descrição do item...">
+                            <button type="button" class="btn btn-warning btn-sm w-100 fw-bold" onclick="addPecaCarrinho(0, 'AVULSO')">
+                                <i class="bi bi-plus-circle"></i> Adicionar Avulso
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7">
+                        <label class="fw-bold mb-2 text-primary">Peças Selecionadas</label>
+                        <div id="carrinhoPecas" class="bg-white rounded p-3 border" style="min-height: 300px;">
+                            <p class="text-muted text-center py-5">Nenhuma peça selecionada para este reporte.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">Confirmar Lista de Peças</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEvidencias" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-images me-2 text-primary"></i>Evidências da Atividade #<span id="atvId"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light p-4">
+                <div id="evidenciasContainer" class="row">
+                    <p class="text-muted text-center">Iniciando busca...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr/l10n/pt.js"></script>
+
+    <script>
+        // 1. Variáveis globais e Inicialização
+        let pecasSelecionadas = [];
+        let arquivosTemporarios = [];
+        const estoqueLocal = @Html.Raw(JsonConvert.SerializeObject(ViewBag.Estoque ?? new List<Diario_de_Bordo.Models.Estoque.ItemEstoque>()));
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // --- CONFIGURAÇÃO DE DATAS ---
+            const hoje = new Date();
+            const configPicker = {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                time_24hr: true,
+                locale: "pt",
+                defaultDate: hoje,
+                maxDate: hoje
+            };
+            flatpickr("#timepickerInicio", configPicker);
+            flatpickr("#timepickerFim", configPicker);
+
+            // --- LÓGICA DE ANEXOS ---
+            const inputFotos = document.getElementById("inputFotos");
+            if (inputFotos) {
+                inputFotos.addEventListener("change", function () {
+                    const novosArquivos = Array.from(inputFotos.files);
+                    novosArquivos.forEach(file => {
+                        if (!arquivosTemporarios.some(f => f.name === file.name && f.size === file.size)) {
+                            arquivosTemporarios.push(file);
+                        }
+                    });
+                    atualizarInterfaceLista();
+                    inputFotos.value = "";
+                });
+            }
+        });
+
+        // --- FUNÇÕES DE EVIDÊNCIAS (AJAX) ---
+        function abrirEvidencias(id) {
+            $("#atvId").text(id);
+            $("#evidenciasContainer").html(`
+                <div class="text-center py-5 w-100">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Acessando servidor de arquivos...</p>
+                </div>
+            `);
+            $("#modalEvidencias").modal("show");
+
+            $.ajax({
+                url: '/Diario/ObterEvidencias',
+                type: 'GET',
+                data: { id: id },
+                success: function (data) {
+                    let html = "";
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const isPdf = item.file_name.toLowerCase().endsWith('.pdf');
+                            html += `
+                                <div class="col-md-4 col-lg-3 mb-3">
+                                    <div class="card h-100 shadow-sm border-0">
+                                        ${isPdf ?
+                                            `<div class="card-body text-center d-flex flex-column justify-content-center align-items-center" style="min-height: 180px; background: #fff5f5;">
+                                                <i class="bi bi-file-earmark-pdf text-danger display-3"></i>
+                                                <a href="${item.file_url}" target="_blank" class="btn btn-sm btn-danger mt-2">Abrir PDF</a>
+                                             </div>` :
+                                            `<img src="${item.file_url}" class="card-img p-1 rounded" style="height: 180px; width: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${item.file_url}', '_blank')">`
+                                        }
+                                        <div class="card-footer bg-white border-0 p-2">
+                                            <small class="text-muted text-truncate d-block">${item.file_name}</small>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                    } else {
+                        html = '<div class="text-center py-5 w-100"><p class="text-muted">Nenhuma evidência encontrada.</p></div>';
+                    }
+                    $("#evidenciasContainer").html(html);
+                },
+                error: function () {
+                    $("#evidenciasContainer").html('<div class="alert alert-danger">Erro ao carregar arquivos.</div>');
+                }
+            });
+        }
+
+        // --- LÓGICA DO ESTOQUE (BUSCA) ---
+        $(document).on('keyup', '#inputBuscaPeca', function() {
+            let termo = $(this).val().toLowerCase();
+            let resultados = $('#resBuscaPeca');
+
+            if (termo.length < 2) { resultados.hide(); return; }
+
+            let filtrados = estoqueLocal.filter(i =>
+                (i.PartNumber && i.PartNumber.toLowerCase().includes(termo)) ||
+                (i.Descricao && i.Descricao.toLowerCase().includes(termo))
+            ).slice(0, 10);
+
+            resultados.empty().show();
+            if(filtrados.length === 0) {
+                resultados.append('<div class="list-group-item small text-muted">Nenhum item encontrado</div>');
+            } else {
+                filtrados.forEach(i => {
+                    resultados.append(`
+                        <button type="button" class="list-group-item list-group-item-action py-2"
+                            onclick="addPecaCarrinho(${i.Id}, 'ESTOQUE', '${i.PartNumber} - ${i.Descricao}')">
+                            <div class="fw-bold small">${i.PartNumber}</div>
+                            <div style="font-size: 11px;" class="text-muted">${i.Descricao}</div>
+                        </button>
+                    `);
+                });
+            }
+        });
+
+        function addPecaCarrinho(id, tipo, descricaoEstoque = '') {
+            let desc = tipo === 'AVULSO' ? $("#avulsoDesc").val() : descricaoEstoque;
+            if (tipo === 'AVULSO' && !desc) { alert("Descreva o item"); return; }
+
+            pecasSelecionadas.push({ id, descricao: desc, quantidade: 1, tipo });
+
+            $("#avulsoDesc").val('');
+            $("#inputBuscaPeca").val('');
+            $("#resBuscaPeca").hide();
+            renderCarrinhoModal();
+        }
+
+        function renderCarrinhoModal() {
+            const cont = $("#carrinhoPecas");
+            cont.empty();
+            if (pecasSelecionadas.length === 0) {
+                cont.append('<p class="text-muted text-center py-5">Nenhuma peça selecionada.</p>');
+                return;
+            }
+            pecasSelecionadas.forEach((p, idx) => {
+                cont.append(`
+                    <div class="d-flex justify-content-between align-items-center p-2 mb-2 border rounded bg-light">
+                        <div class="small">
+                            <span class="badge ${p.tipo === 'AVULSO' ? 'bg-warning' : 'bg-primary'} me-2">${p.tipo}</span>
+                            <span class="fw-bold">${p.descricao}</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <input type="number" class="form-control form-control-sm me-2" style="width: 60px"
+                                   value="${p.quantidade}" onchange="pecasSelecionadas[${idx}].quantidade = this.value">
+                            <button type="button" class="btn btn-sm text-danger" onclick="pecasSelecionadas.splice(${idx},1); renderCarrinhoModal();">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        // --- ENVIO DO FORMULÁRIO ---
+        $("#formNovaAtividade").submit(function (e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+
+            arquivosTemporarios.forEach(file => formData.append("evidencias", file));
+            formData.append("pecasJson", JSON.stringify(pecasSelecionadas));
+
+            $.ajax({
+                type: "POST",
+                url: "/Diario/Nova",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function () {
+                    $("#popupSucesso").fadeIn().delay(2000).fadeOut(() => { window.location.reload(); });
+                },
+                error: function (xhr) { alert("Erro ao salvar: " + xhr.responseText); }
+            });
+        });
+
+        function atualizarInterfaceLista() {
+            const container = document.getElementById("listaArquivosContainer");
+            container.innerHTML = "";
+            if (arquivosTemporarios.length === 0) {
+                container.innerHTML = '<p class="text-muted py-3 text-center">Nenhum arquivo selecionado.</p>';
+                return;
+            }
+            arquivosTemporarios.forEach((file, index) => {
+                const item = document.createElement("div");
+                item.className = "file-item";
+                item.innerHTML = `
+                    <div class="small fw-bold text-truncate" style="max-width: 250px;">${file.name}</div>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removerArquivo(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>`;
+                container.appendChild(item);
+            });
+        }
+
+        window.removerArquivo = function(index) {
+            arquivosTemporarios.splice(index, 1);
+            atualizarInterfaceLista();
+        };
+    </script>
+}

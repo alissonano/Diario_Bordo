@@ -1,0 +1,149 @@
+﻿@{
+    ViewData["Title"] = "Feeder Check";
+}
+
+<div class="container mt-2">
+    <div id="divSelecao">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 text-primary">
+                <i class="bi bi-grid-3x3-gap"></i> Selecione a Linha
+            </h4>
+
+            <a href="@Url.Action("GerarEtiquetas", "Setup")" class="btn btn-outline-success btn-sm shadow-sm">
+                <i class="bi bi-qr-code"></i> Gerar Etiquetas
+            </a>
+        </div>
+        <div id="gridLinhas" class="row g-3">
+        </div>
+    </div>
+
+    <div id="divScanner" class="d-none">
+        <div class="d-flex align-items-center mb-3">
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="voltarParaSelecao()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <h5 class="mb-0 text-dark">Checklist: <span id="spanLinha" class="text-primary"></span></h5>
+        </div>
+
+        <div class="card bg-light border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <p class="mb-1 text-muted small">Programa Ativo:</p>
+                <h6 id="spanPrograma" class="fw-bold text-dark">Carregando...</h6>
+            </div>
+        </div>
+
+        <div class="card p-3 shadow-sm mb-3">
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-uppercase">1. Escaneie o SLOT</label>
+                <input type="text" id="inputSlot" class="form-control form-control-lg" placeholder="Bipe o Slot..." autocomplete="off">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-uppercase">2. Escaneie o ROLO</label>
+                <input type="text" id="inputRolo" class="form-control form-control-lg" placeholder="Bipe o Rolo..." autocomplete="off" disabled>
+            </div>
+        </div>
+
+        <div id="divFeedback" class="text-center p-3 rounded d-none">
+            <h4 id="txtFeedback" class="m-0 text-white fw-bold"></h4>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let linhaAtual = "";
+        let programaAtual = "";
+
+        $(document).ready(function() {
+            carregarLinhas();
+        });
+
+        function carregarLinhas() {
+            $.get('@Url.Action("GetLinhasDisponiveis", "Setup")', function(res) {
+                let grid = $('#gridLinhas');
+                grid.empty();
+                res.forEach(linha => {
+                    grid.append(`
+                        <div class="col-6">
+                            <div class="card shadow-sm border-primary text-center p-3 h-100" onclick="iniciarScanner('${linha}')">
+                                <div class="card-body">
+                                    <i class="bi bi-cpu fs-2 text-primary"></i>
+                                    <h5 class="mt-2">${linha}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+                // Substitua sua função iniciarScanner atual por esta:
+        function iniciarScanner(linha) {
+            // Redireciona para a nova View passando a linha como parâmetro
+            window.location.href = '@Url.Action("PDAAssembleon", "Setup")?linha=' + linha;
+        }
+
+        function voltarParaSelecao() {
+            $('#divScanner').addClass('d-none');
+            $('#divSelecao').removeClass('d-none');
+            $('#divFeedback').addClass('d-none');
+        }
+
+        // --- Lógica de Scan (Enter/Submit) ---
+
+        $('#inputSlot').on('keypress', function(e) {
+            if(e.which === 13) {
+                let valor = $(this).val();
+                if(valor.length > 0) {
+                    $(this).prop('disabled', true);
+                    $('#inputRolo').prop('disabled', false).focus();
+                }
+            }
+        });
+
+        $('#inputRolo').on('keypress', function(e) {
+            if(e.which === 13) {
+                let valor = $(this).val(); // Formato esperado: ...;/ç{partnumber}
+                let partes = valor.split(';/ç');
+
+                if(partes.length >= 2) {
+                    let partnumber = partes[1]; // Pega o que vem depois do separador
+
+                    let payload = {
+                        linha: linhaAtual,
+                        programa: programaAtual,
+                        maquina: "", // Preencha com a lógica de parse do Slot se necessário
+                        slot: $('#inputSlot').val(),
+                        codigoUnico: partes[0],
+                        partnumber: partnumber
+                    };
+
+                    validarNoServidor(payload);
+                } else {
+                    alert("Formato de rolo inválido!");
+                }
+            }
+        });
+
+        function validarNoServidor(payload) {
+            $.ajax({
+                url: '@Url.Action("ValidarFeeder", "Setup")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function(res) {
+                    let feed = $('#divFeedback');
+                    feed.removeClass('d-none bg-success bg-danger').addClass(res.success ? 'bg-success' : 'bg-danger');
+                    $('#txtFeedback').text(res.message);
+
+                    // Reset para próximo scan
+                    setTimeout(() => {
+                        $('#inputSlot').val('').prop('disabled', false).focus();
+                        $('#inputRolo').val('').prop('disabled', true).val('');
+                        feed.addClass('d-none');
+                    }, 1500);
+                }
+            });
+        }
+    </script>
+}

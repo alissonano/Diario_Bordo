@@ -1,0 +1,265 @@
+﻿@using System.Text.Json
+@{
+    ViewData["Title"] = "BI - Monitoramento de Manutenção";
+}
+
+<link rel="stylesheet" href="~/lib/flatpickr/flatpickr.min.css">
+<link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css">
+
+
+<style>
+    :root {
+        --primary-color: #004a99;
+    }
+
+    /* Força o container principal a ocupar 100% */
+    .container-full {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 30px;
+    }
+
+    body {
+        background-color: #f4f7f6;
+    }
+
+    /* Estilo padronizado para os Containers (Filtros, Gráfico e Tabelas) */
+    .bi-container {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border-left: 6px solid var(--primary-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        width: 100%;
+    }
+
+    /* Customização das Tabelas */
+    .table-custom thead {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .table-custom tr:hover {
+        background-color: rgba(0,74,153,0.05);
+    }
+
+    /* Ajuste das abas (Pills) para combinarem com o estilo flat */
+    .nav-pills .nav-link {
+        color: #666;
+        font-weight: 600;
+        border: 1px solid #dee2e6;
+        margin-left: 5px;
+    }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+    #graficoLinhaMain {
+        width: 100% !important;
+        min-height: 400px;
+    }
+
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .container-full {
+            padding: 0;
+        }
+
+        .bi-container {
+            border: 1px solid #ccc;
+        }
+    }
+</style>
+
+<div class="container-full py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <h3 class="fw-bold text-dark"><i class="bi bi-cpu-fill me-2 text-primary"></i>BI Manutenção Industrial</h3>
+        <div class="d-flex gap-2">
+            <span class="badge bg-white text-dark border p-2 d-flex align-items-center">
+                <i class="bi bi-clock me-2 text-primary"></i> GMT-4 (Manaus)
+            </span>
+            <button class="btn btn-primary px-4 shadow-sm fw-bold" onclick="window.print()">
+                <i class="bi bi-file-earmark-pdf me-2"></i>GERAR PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="bi-container no-print">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">PERÍODO INICIAL</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+                    <input type="text" name="dataInicio" class="form-control datepicker" value="@ViewBag.DataInicio">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">PERÍODO FINAL</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+                    <input type="text" name="dataFim" class="form-control datepicker" value="@ViewBag.DataFim">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">TÉCNICO</label>
+                <select name="tecnico" class="form-select">
+                    <option value="">Todos os Colaboradores</option>
+                    @foreach (var t in ViewBag.Tecnicos)
+                    {
+                        <option value="@t" selected="@(t == ViewBag.TecnicoSelecionado)">@t</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">TURNO</label>
+                <select name="turno" class="form-select">
+                    <option value="">Todos os Turnos</option>
+                    <option value="1T" selected="@(ViewBag.TurnoSelecionado == "1T")">1º Turno</option>
+                    <option value="2T" selected="@(ViewBag.TurnoSelecionado == "2T")">2º Turno</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-dark w-100 fw-bold py-2">FILTRAR</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bi-container">
+        <h6 class="fw-bold mb-4 text-secondary text-uppercase"><i class="bi bi-bar-chart-line me-2"></i>Downtime Acumulado por Linha (Horas)</h6>
+        <div id="graficoLinhaMain"></div>
+    </div>
+
+    <div class="bi-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-list-check fs-5 me-2 text-primary"></i>
+                <h5 class="mb-0 fw-bold text-dark">Detalhamento Consolidado</h5>
+            </div>
+            <ul class="nav nav-pills" id="pills-tab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active small" data-bs-toggle="pill" data-bs-target="#tab-tecnicos" type="button">TÉCNICOS</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link small" data-bs-toggle="pill" data-bs-target="#tab-linhas" type="button">LINHAS</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link small" data-bs-toggle="pill" data-bs-target="#tab-maquinas" type="button">EQUIPAMENTOS</button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-tecnicos">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0 w-100">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Técnico Responsável</th>
+                                <th class="text-center">Intervenções</th>
+                                <th class="text-end pe-4">Total Horas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in ViewBag.RelatorioTecnico)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">@item.Nome</td>
+                                    <td class="text-center">@item.Qtd Atividades</td>
+                                    <td class="text-end pe-4 fw-bold text-primary">@item.TotalHrs.ToString("N2") hrs</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-linhas">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0 w-100">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Linha de Produção</th>
+                                <th class="text-center">Ocorrências</th>
+                                <th class="text-end pe-4">Downtime Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in ViewBag.RelatorioLinha)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">@item.Linha</td>
+                                    <td class="text-center">@item.Qtd</td>
+                                    <td class="text-end pe-4 fw-bold text-success">@item.TotalHrs.ToString("N2") hrs</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-maquinas">
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0 w-100">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Equipamento</th>
+                                <th>Linha</th>
+                                <th class="text-center">Falhas</th>
+                                <th class="text-end pe-4">Tempo Parado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in ViewBag.RelatorioMaquina)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">@item.maquina</td>
+                                    <td>@item.linha</td>
+                                    <td class="text-center">@item.Qtd</td>
+                                    <td class="text-end pe-4 fw-bold text-danger">@item.TotalHrs.ToString("N2") hrs</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/flatpickr/flatpickr.min.js"></script>
+    <script src="~/lib/flatpickr/l10n/pt.js"></script>
+    <script src="~/lib/plotly.js/dist/plotly.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            flatpickr(".datepicker", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "pt" });
+
+            const tempoPorLinha = @Html.Raw(JsonSerializer.Serialize(ViewBag.TempoPorLinha));
+
+            const data = [{
+                x: tempoPorLinha.map(x => x.linha),
+                y: tempoPorLinha.map(x => (x.minutos/60).toFixed(2)),
+                type: 'bar',
+                marker: { color: '#004a99' },
+                hovertemplate: '<b>%{x}</b><br>Tempo: %{y} hrs<extra></extra>'
+            }];
+
+            const layout = {
+                margin: { t: 10, l: 40, r: 10, b: 40 },
+                autosize: true
+            };
+
+            Plotly.newPlot('graficoLinhaMain', data, layout, { responsive: true, displayModeBar: false });
+
+            window.onresize = () => Plotly.Plots.resize('graficoLinhaMain');
+        });
+    </script>
+}

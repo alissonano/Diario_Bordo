@@ -1,0 +1,253 @@
+﻿@model Diario_de_Bordo.Models.CQEvidenciasViewModel
+
+@{
+    ViewData["Title"] = "Evidências da Inspeção";
+}
+
+<h3>Inspeção @Model.CQId - @Model.Cliente / @Model.Modelo</h3>
+<p>
+    <strong>OP:</strong> @Model.OP |
+    <strong>Fase:</strong> @Model.Fase |
+    <strong>Turno:</strong> @Model.Turno
+</p>
+<hr />
+
+<form asp-action="SalvarEvidencias" method="post">
+    <input type="hidden" name="CQId" value="@Model.CQId" />
+
+    <div class="mb-3 row">
+        <label class="col-sm-2 col-form-label fw-bold">Status:</label>
+        <div class="col-sm-4">
+            <select name="Status" class="form-select">
+                <option value="Aguardando Confirmação" selected="@(Model.Status == "Aguardando Confirmação")">Aguardando Confirmação</option>
+                <option value="Aprovado" selected="@(Model.Status == "Aprovado")">Aprovado</option>
+                <option value="Reprovado" selected="@(Model.Status == "Reprovado")">Reprovado</option>
+            </select>
+        </div>
+
+        <label class="col-sm-2 col-form-label fw-bold">Comentário Geral:</label>
+        <div class="col-sm-4">
+            <input type="text" name="ComentarioGeral" class="form-control" value="@Model.ComentarioGeral" />
+        </div>
+    </div>
+
+    <!-- ======== TABELA TRADICIONAL ======== -->
+    <table class="table table-bordered table-striped align-middle" style="font-size:0.9rem;">
+        <thead class="table-light">
+            <tr>
+                <th>Posto</th>
+                <th>Item</th>
+                <th>Resultado</th>
+                <th>Evidências / Comentários</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int p = 0; p < Model.Postos.Count; p++)
+            {
+                var posto = Model.Postos[p];
+                var itemCount = posto.Itens.Count;
+
+                for (int i = 0; i < itemCount; i++)
+                {
+                    var item = posto.Itens[i];
+                    <tr>
+                        @if (i == 0)
+                        {
+                            <td rowspan="@itemCount"><strong>@posto.Posto</strong></td>
+                        }
+
+                        <td>@item.Nome</td>
+
+                        <td>
+                            <select name="Postos[@p].Itens[@i].Resultado" class="form-select form-select-sm">
+                                <option value="N/A" selected="@("N/A" == item.Resultado)">N/A</option>
+                                <option value="OK" selected="@("OK" == item.Resultado)">OK</option>
+                                <option value="NG" selected="@("NG" == item.Resultado)">NG</option>
+                            </select>
+                        </td>
+
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary w-100"
+                                    onclick="abrirModalEvidencia('@Model.CQId', '@posto.Posto', '@item.Nome')">
+                                Evidências / Comentários
+                            </button>
+
+                            <div id="preview-@p-@i" class="d-flex flex-wrap mt-1">
+                                @foreach (var ev in item.Evidencias ?? new List<Diario_de_Bordo.Models.EvidenciaViewModel>())
+                                {
+                                    <div class="miniatura-wrapper me-1 mb-1 position-relative">
+                                        <img src="@Url.Action("MostrarEvidencia", "CQ", new { id = ev.Id })"
+                                             class="miniatura-evidencia"
+                                             style="width:60px;height:60px;object-fit:cover;border-radius:5px;cursor:pointer;"
+                                             onclick="abrirImagemModal('@Url.Action("MostrarEvidencia", "CQ", new { id = ev.Id })')" />
+
+                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0"
+                                                style="border-radius:50%; width:18px; height:18px; font-size:12px;"
+                                                onclick="removerMiniatura(this, '@ev.Id')">
+                                            &times;
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+
+                            <input type="hidden" name="Postos[@p].Posto" value="@posto.Posto" />
+                            <input type="hidden" name="Postos[@p].Itens[@i].Nome" value="@item.Nome" />
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-success">💾 Salvar Alterações</button>
+</form>
+
+<!-- ================== MODAL EVIDÊNCIAS ================== -->
+<div class="modal fade" id="modalEvidencia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Evidências - <span id="tituloModal"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="listaImagens" class="mb-3 row"></div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Comentários:</label>
+                    <ul id="listaComentarios" class="list-group small"></ul>
+                </div>
+
+                <textarea id="novoComentario" class="form-control mb-2" placeholder="Escreva um comentário..."></textarea>
+                <input type="file" id="novasImagens" multiple class="form-control mb-3" />
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="salvarEvidencias()">💾 Salvar</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let cqIdAtual, postoAtual, itemAtual;
+            const modalEvidenciaEl = document.getElementById('modalEvidencia');
+            const modalEvidencia = modalEvidenciaEl ? new bootstrap.Modal(modalEvidenciaEl) : null;
+
+            window.abrirModalEvidencia = async function (cqId, posto, item) {
+                if (!modalEvidencia) return;
+
+                cqIdAtual = cqId;
+                postoAtual = posto;
+                itemAtual = item;
+
+                document.getElementById('tituloModal').innerText = `${postoAtual} - ${itemAtual}`;
+                document.getElementById('listaImagens').innerHTML = '<p class="text-muted">Carregando...</p>';
+                document.getElementById('listaComentarios').innerHTML = '';
+
+                await carregarEvidencias();
+                await carregarComentarios();
+
+                modalEvidencia.show();
+            }
+
+            async function carregarEvidencias() {
+                try {
+                    const resp = await fetch(`/CQ/ListarEvidencias?cqId=${cqIdAtual}&posto=${encodeURIComponent(postoAtual)}&item=${encodeURIComponent(itemAtual)}`);
+                    const evidencias = await resp.ok ? await resp.json() : [];
+                    const lista = document.getElementById('listaImagens');
+
+                    if (!lista) return;
+
+                    if (evidencias.length === 0) {
+                        lista.innerHTML = '<p class="text-muted">Nenhuma evidência anexada.</p>';
+                        return;
+                    }
+
+                    lista.innerHTML = evidencias.filter(e => e.temArquivo).map(e => `
+                        <div class="col-md-4 mb-2 text-center">
+                            <img src="/CQ/MostrarEvidencia/${e.id}" class="img-fluid rounded shadow-sm"
+                                 onclick="abrirImagemModal('/CQ/MostrarEvidencia/${e.id}')" />
+                            <button class="btn btn-sm btn-danger mt-1" onclick="excluirEvidencia(${e.id})">Excluir</button>
+                        </div>
+                    `).join('');
+                } catch (erro) {
+                    console.error(erro);
+                }
+            }
+
+            async function carregarComentarios() {
+                try {
+                    const resp = await fetch(`/CQ/ListarComentarios?cqId=${cqIdAtual}&posto=${encodeURIComponent(postoAtual)}&item=${encodeURIComponent(itemAtual)}`);
+                    const comentarios = resp.ok ? await resp.json() : [];
+                    const lista = document.getElementById('listaComentarios');
+                    if (!lista) return;
+
+                    if (comentarios.length === 0) {
+                        lista.innerHTML = '<li class="list-group-item text-muted">Sem comentários.</li>';
+                        return;
+                    }
+
+                    lista.innerHTML = comentarios.map(c => `<li class="list-group-item">${c}</li>`).join('');
+                } catch (erro) {
+                    console.error(erro);
+                }
+            }
+
+            window.salvarEvidencias = async function () {
+                const comentario = document.getElementById('novoComentario').value.trim();
+                const arquivos = document.getElementById('novasImagens').files;
+
+                if (!comentario && arquivos.length === 0) {
+                    alert('Adicione um comentário ou selecione ao menos uma imagem.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('cqId', cqIdAtual);
+                formData.append('posto', postoAtual);
+                formData.append('itemNome', itemAtual);
+                formData.append('comentario', comentario);
+
+                for (let i = 0; i < arquivos.length; i++) {
+                    formData.append('arquivos', arquivos[i]);
+                }
+
+                try {
+                    const resp = await fetch('/CQ/UploadEvidencias', { method: 'POST', body: formData });
+                    const json = await resp.json();
+
+                    if (json.sucesso) {
+                        document.getElementById('novoComentario').value = '';
+                        document.getElementById('novasImagens').value = '';
+                        await carregarEvidencias();
+                        await carregarComentarios();
+                    } else {
+                        alert('Erro: ' + json.mensagem);
+                    }
+                } catch (erro) {
+                    console.error(erro);
+                    alert('Erro ao salvar evidências.');
+                }
+            }
+
+            window.excluirEvidencia = async function (id) {
+                if (!confirm('Deseja realmente excluir esta evidência?')) return;
+
+                try {
+                    const resp = await fetch(`/CQ/ExcluirEvidencia/${id}`, { method: 'DELETE' });
+                    const json = await resp.json();
+                    if (json.sucesso) await carregarEvidencias();
+                    else alert('Erro: ' + json.mensagem);
+                } catch (erro) {
+                    console.error(erro);
+                    alert('Erro ao excluir evidência.');
+                }
+            }
+        });
+    </script>
+}

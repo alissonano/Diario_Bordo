@@ -1,0 +1,81 @@
+﻿@model Diario_de_Bordo.Models.Stencil
+
+<div class="container-fluid px-5 py-4">
+    <div class="d-flex align-items-center justify-content-between mb-5 border-bottom pb-3">
+        <div class="d-flex align-items-baseline">
+            <h2 class="fw-bold text-dark m-0"><i class="bi bi-pencil-square me-3 text-primary"></i>Editar Stencil</h2>
+            <span class="ms-3 text-muted fw-light fs-5">| ID: @Model.id — @Model.num_stencil</span>
+        </div>
+        <a asp-action="Index" class="text-muted text-decoration-none small fw-bold"><i class="bi bi-arrow-left"></i> VOLTAR PARA LISTA</a>
+    </div>
+
+    <div asp-validation-summary="All" class="text-danger mb-3 small fw-bold"></div>
+    @if (ViewBag.ErroValidacao != null)
+    {
+        <div class="alert alert-danger">@ViewBag.ErroValidacao</div>
+    }
+
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="id" />
+        @Html.AntiForgeryToken()
+
+        <div class="row g-5">
+            <div class="col-md-9">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label asp-for="num_stencil" class="form-label small fw-bold text-secondary text-uppercase">Nº do Stencil</label>
+                        <input asp-for="num_stencil" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent fw-bold" />
+                    </div>
+                    <div class="col-md-8">
+                        <label asp-for="descricao" class="form-label small fw-bold text-secondary text-uppercase">Descrição / Modelo</label>
+                        <input asp-for="descricao" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="cliente" class="form-label small fw-bold text-secondary text-uppercase">Cliente</label>
+                        <input asp-for="cliente" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="fabricante" class="form-label small fw-bold text-secondary text-uppercase">Fabricante</label>
+                        <input asp-for="fabricante" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="cod_fabricante" class="form-label small fw-bold text-secondary text-uppercase">Código do Fabricante (Part Number)</label>
+                        <input asp-for="cod_fabricante" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="data_fabricacao" class="form-label small fw-bold text-secondary text-uppercase">Data de Fabricação</label>
+                        <input asp-for="data_fabricacao" type="date" class="form-control border-0 border-bottom rounded-0 px-0 shadow-none bg-transparent" />
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-5 d-flex align-items-center gap-4 border-top">
+                    <button type="submit" class="btn btn-dark rounded-0 px-5 py-2 fw-bold shadow-sm">
+                        <i class="bi bi-check-lg me-2"></i>SALVAR ALTERAÇÕES
+                    </button>
+                    <a asp-action="Index" class="text-danger text-decoration-none fw-bold small">CANCELAR</a>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm bg-light p-4" style="border-radius: 15px;">
+                    <h6 class="fw-bold mb-3">Resumo do Ativo</h6>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Número de Identificação</small>
+                        <span class="fw-bold">@Model.num_stencil</span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Proprietário/Cliente</small>
+                        <span class="fw-bold">@(Model.cliente ?? "Interno")</span>
+                    </div>
+                    <hr>
+                    <p class="small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Alterações neste cadastro serão refletidas em todos os relatórios de verificação (Checks) futuros.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

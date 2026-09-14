@@ -1,0 +1,155 @@
+﻿@model Diario_de_Bordo.Models.Estoque.Fornecedor
+
+@* ... (Mesmo Style da View de Cadastro acima) ... *@
+
+<div class="main-container py-4">
+    <div class="container-fluid px-md-5">
+        <form asp-action="Editar" method="post" id="fornecedorForm">
+            <input type="hidden" asp-for="Id" />
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Contato" id="contatoFinal" />
+            <input type="hidden" asp-for="Email" id="emailFinal" />
+            <input type="hidden" asp-for="Telefone" id="telefoneFinal" />
+
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+                <div class="d-flex align-items-center">
+                    <a asp-action="Index" class="btn btn-white shadow-sm rounded-circle me-3"><i class="bi bi-arrow-left"></i></a>
+                    <h3 class="fw-bold m-0 text-dark">Editar Fornecedor</h3>
+                </div>
+                <div class="d-flex gap-2 w-100 w-md-auto">
+                    <button type="submit" class="btn btn-primary btn-lg-mobile px-5 fw-bold rounded-pill shadow">SALVAR</button>
+                </div>
+            </div>
+
+            <div class="card card-form p-4 p-md-5">
+                @* Dados Jurídicos *@
+                <div class="mb-5">
+                    <h6 class="section-title fw-bold mb-4 text-uppercase">Dados da Empresa</h6>
+                    <div class="row g-4">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="NomeFantasia" class="form-label small fw-bold">Nome Fantasia</label>
+                            <input asp-for="NomeFantasia" class="form-control border-0 border-bottom rounded-0 px-0 bg-transparent fw-bold" required />
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <label asp-for="RazaoSocial" class="form-label small fw-bold">Razão Social</label>
+                            <input asp-for="RazaoSocial" class="form-control border-0 border-bottom rounded-0 px-0 bg-transparent" required />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label asp-for="Cnpj" class="form-label small fw-bold">CNPJ</label>
+                            <input asp-for="Cnpj" id="cnpj" class="form-control border-0 border-bottom rounded-0 px-0 bg-transparent" required />
+                        </div>
+                    </div>
+                </div>
+
+                @* Contatos *@
+                <div class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="section-title fw-bold m-0 text-uppercase">Contatos Cadastrados</h6>
+                        <button type="button" class="btn btn-dark btn-sm rounded-pill px-3" onclick="adicionarLinhaContato()">
+                            <i class="bi bi-plus-lg me-1"></i> ADICIONAR
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="tabelaContatos">
+                            <thead>
+                                <tr class="text-secondary small">
+                                    <th class="border-0 ps-0">NOME / DEPARTAMENTO</th>
+                                    <th class="border-0">E-MAIL</th>
+                                    <th class="border-0">TELEFONE</th>
+                                    <th class="border-0 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody>@* Injetado via JS *@</tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <h6 class="section-title fw-bold mb-3 text-uppercase">Escopo</h6>
+                    <textarea asp-for="EscopoDescricao" class="form-control border-0 border-bottom rounded-0 px-0 bg-transparent" rows="2"></textarea>
+                </div>
+            </div>
+        </form>
+
+        @* Zona de Perigo *@
+        <div class="mt-4 p-3 bg-white rounded-4 d-flex justify-content-between align-items-center border border-danger-subtle shadow-sm">
+            <span class="text-muted small">Remover registro permanentemente?</span>
+            <form asp-action="Excluir" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('ATENÇÃO: Isso apagará este fornecedor. Confirmar?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-link text-danger fw-bold text-decoration-none p-0">EXCLUIR</button>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        function criarLinha(nome = '', email = '', tel = '') {
+            const tbody = document.querySelector('#tabelaContatos tbody');
+            const row = document.createElement('tr');
+            row.className = 'linha-contato';
+            row.innerHTML = `
+                <td data-label="Nome" class="ps-md-0"><input type="text" class="form-control form-control-sm border-0 border-bottom bg-transparent rounded-0 shadow-none input-nome" value="${nome}" placeholder="Nome..."></td>
+                <td data-label="E-mail"><input type="email" class="form-control form-control-sm border-0 border-bottom bg-transparent rounded-0 shadow-none input-email" value="${email}" placeholder="E-mail..."></td>
+                <td data-label="Telefone"><input type="text" class="form-control form-control-sm border-0 border-bottom bg-transparent rounded-0 shadow-none input-tel mask-tel" value="${tel}" placeholder="Telefone..."></td>
+                <td class="text-center btn-remove-mobile">
+                    <button type="button" class="btn btn-link text-danger p-0" onclick="removerLinha(this)"><i class="bi bi-x-circle fs-5"></i></button>
+                </td>`;
+            tbody.appendChild(row);
+            const inputTel = row.querySelector('.mask-tel');
+            inputTel.addEventListener('input', (e) => aplicarMascaraTel(e.target));
+            aplicarMascaraTel(inputTel);
+        }
+
+        function adicionarLinhaContato() { criarLinha(); }
+        function removerLinha(btn) { if (document.querySelectorAll('.linha-contato').length > 1) btn.closest('tr').remove(); }
+
+        function aplicarMascaraTel(el) {
+            let value = el.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            if (value.length > 10) value = value.replace(/^(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+            else if (value.length > 6) value = value.replace(/^(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3");
+            else if (value.length > 2) value = value.replace(/^(\d{2})(\d{0,5})/, "($1) $2");
+            else if (value.length > 0) value = value.replace(/^(\d*)/, "($1");
+            el.value = value;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Desserialização (Importante: mantive sua lógica de pipe '|')
+            const nomesExistentes = "@Html.Raw(Model?.Contato)".split(' | ');
+            const emailsExistentes = "@Html.Raw(Model?.Email)".split(' | ');
+            const telsExistentes = "@Html.Raw(Model?.Telefone)".split(' | ');
+
+            if (nomesExistentes[0] && nomesExistentes[0] !== "null" && nomesExistentes[0].trim() !== "") {
+                nomesExistentes.forEach((nome, i) => {
+                    criarLinha(nome.trim(), (emailsExistentes[i] || '').trim(), (telsExistentes[i] || '').trim());
+                });
+            } else {
+                criarLinha();
+            }
+
+            // Máscara CNPJ
+            const cnpjInput = document.getElementById('cnpj');
+            const aplicarMascaraCNPJ = (el) => {
+                let v = el.value.replace(/\D/g, '');
+                if (v.length > 14) v = v.slice(0, 14);
+                v = v.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                     .replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+                el.value = v;
+            };
+            aplicarMascaraCNPJ(cnpjInput);
+            cnpjInput.addEventListener('input', (e) => aplicarMascaraCNPJ(e.target));
+
+            // Serialização no Submit
+            document.getElementById('fornecedorForm').addEventListener('submit', function (e) {
+                const nomes = Array.from(document.querySelectorAll('.input-nome')).map(i => i.value.trim()).filter(v => v !== "");
+                const emails = Array.from(document.querySelectorAll('.input-email')).map(i => i.value.trim());
+                const tels = Array.from(document.querySelectorAll('.input-tel')).map(i => i.value.trim());
+
+                document.getElementById('contatoFinal').value = nomes.join(' | ');
+                document.getElementById('emailFinal').value = emails.join(' | ');
+                document.getElementById('telefoneFinal').value = tels.join(' | ');
+            });
+        });
+    </script>
+}

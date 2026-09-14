@@ -1,0 +1,66 @@
+﻿@{
+}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Diário de Bordo</title>
+
+    @* Favicons *@
+    <link rel="icon" type="image/png" href="~/icons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="~/icons/favicon.svg" />
+    <link rel="shortcut icon" href="~/icons/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="~/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="GBR-App" />
+    <link rel="manifest" href="~/icons/site.webmanifest" />
+
+    <link rel="stylesheet" href="@Url.Content("~/lib/bootstrap/dist/css/bootstrap.min.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/lib/bootstrap-icons/font/bootstrap-icons.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/lib/datatables/css/jquery.dataTables.min.css")" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 0.95rem;
+            color: #212529;
+            background-color: #f4f7f6; /* Tom levemente mais profissional */
+        }
+
+        /* Removido o max-width: 350px que travava o layout */
+        .card {
+            border-radius: 12px;
+            border: none;
+        }
+
+        /* Estilo para garantir que o conteúdo não fique "colado" nas bordas em telas gigantes */
+        .main-content {
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+
+        /* Ajuste para tabelas DataTables combinarem com o layout */
+        .dataTables_wrapper {
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+    </style>
+
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    @* Usamos container-fluid para o Dashboard ocupar a largura total da tela *@
+    <div class="container-fluid main-content px-4">
+        @RenderBody()
+    </div>
+
+    <script src="@Url.Content("~/lib/jquery/dist/jquery.min.js")"></script>
+    <script src="@Url.Content("~/lib/bootstrap/dist/js/bootstrap.bundle.min.js")"></script>
+    <script src="@Url.Content("~/lib/datatables/js/jquery.dataTables.min.js")"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

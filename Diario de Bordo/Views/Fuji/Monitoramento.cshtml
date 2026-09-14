@@ -1,0 +1,529 @@
+﻿@{
+    ViewData["Title"] = "Monitoramento Real-Time";
+    var usuario = Context.Session.GetString("UsuarioLogado") ?? "op@ad.gbrsmtserver.local";
+}
+
+<div class="container-fluid pt-4" id="interfacePrincipal">
+    <!-- Cabeçalho de Identificação -->
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+        <div>
+            <span class="badge bg-primary-subtle text-primary fw-bold mb-1">DASHBOARD OPERACIONAL</span>
+            <h3 class="ct-value-main">Monitoramento Hora-Hora - <span id="labelMaquina">Carregando...</span></h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="text-end me-3 d-none d-md-block">
+                <small class="text-muted d-block" style="font-size: 0.7rem;">USUÁRIO ATIVO</small>
+                <span class="fw-bold text-dark" id="displayUsuario">@usuario</span>
+            </div>
+            <a href="/Fuji/Andon" id="btnAndon" class="btn btn-white shadow-sm fw-bold border text-warning">
+                <i class="bi bi-grid-3x3-gap-fill me-1"></i> ANDON
+            </a>
+            <button class="btn btn-primary shadow-sm fw-bold px-4" onclick="abrirStatusModulos()">
+                <i class="bi bi-cpu-fill me-1"></i> MÓDULOS
+            </button>
+            <!-- BOTÃO DE RELATÓRIO -->
+            <button class="btn btn-outline-dark shadow-sm fw-bold" onclick="abrirModalRelatorio()">
+                <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> RELATÓRIO
+            </button>
+            <div id="connectionStatus">
+                <div class="p-2 bg-success rounded-circle shadow-sm" title="Link Ativo" style="width: 12px; height: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Card Principal de Status e Modelo -->
+        <div class="col-12">
+            <div id="statusCard" class="card border-0 shadow-sm p-4 transition-all" style="border-radius: 20px; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="ct-label-title text-uppercase" style="font-size: 1.2rem">Modelo em Produção</div>
+                        <div id="nomeProduto" class="ct-value-main mb-0" style="font-size: 2.2rem;">AGUARDANDO...</div>
+                        <div class="d-flex align-items-center gap-2 mt-2 mb-3">
+                            <span id="badgeLadoMonitoramento" class="badge-lado shadow-sm lado-na">-</span>
+                            <span id="badgePanMonitoramento" class="badge badge-pan d-flex align-items-center px-3 fw-bold" style="font-size: 1.2rem;">PAN: -</span>
+                        </div>
+                        <div class="ct-label-title" style="font-size: 1.2rem">
+                            Total Produzido: <span id="qtdTotalLinha" class="ct-value-main">0</span> <span class="ct-value-main">PCS</span>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div id="statusTexto" class="badge bg-success fs-6 px-3 py-2 shadow-sm">OPERANDO</div>
+                        <button class="btn btn-sm btn-outline-danger fw-bold ms-2" onclick="registrarParadaManual()">
+                            <i class="bi bi-stop-circle-fill me-1"></i> REGISTRAR PARADA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO CYCLE TIME -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 20px;">
+                <div class="card-body p-4">
+                    <div class="ct-label-title">Desempenho (Cycle Time)</div>
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <div id="eficienciaCT" class="ct-eff-main">--%</div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="ct-light-container mb-2">
+                                <div id="taktMarker" class="ct-light-marker" title="Meta Takt"></div>
+                                <div id="realBar" class="h-100 transition-all" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2 border-top pt-3">
+                        <div class="col-md-3 border-end ct-metric-box text-center">
+                            <span class="ct-label-title">META TAKT</span>
+                            <div id="taktValor" class="ct-value-main" style="font-size: 1.4rem;">--:--</div>
+                        </div>
+                        <div class="col-md-3 border-end ct-metric-box text-center">
+                            <span class="ct-label-title">REAL MÉDIO (10P)</span>
+                            <div id="realValor" class="ct-value-main" style="font-size: 1.4rem;">--:--</div>
+                        </div>
+                        <div class="col-md-3 border-end ct-metric-box text-center">
+                            <span class="ct-label-title">PRODUTIVIDADE</span>
+                            <div id="ciclosHora" class="ct-value-main" style="font-size: 1.4rem;">-- UPH</div>
+                        </div>
+                        <div class="col-md-3 ct-metric-box text-center">
+                            <div id="ctAmostras" class="small fw-bold text-muted pt-2">Aguardando...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Rendimento -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px;">
+                <div class="card-body p-4">
+                    <div class="ct-label-title"><i class="bi bi-graph-up me-2 text-primary"></i>Rendimento por Hora (Clique na barra para detalhes)</div>
+                    <div style="height: 300px;">
+                        <canvas id="graficoProducao"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- MODAIS -->
+<!-- ====================================================================== -->
+<!-- Modal Relatório de Paradas -->
+<div class="modal fade" id="modalRelatorio" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border:none; box-shadow: 0 15px 50px rgba(0,0,0,0.3);">
+            <div class="modal-header border-0 bg-light" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold">Relatório de Paradas - Linha <span class="text-primary" id="relatorioLinhaNome"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px;">
+                            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                                <div><i class="bi bi-clock-history me-2 text-warning"></i><span class="fw-bold small">TOTAL DE TEMPO PARADO:</span></div>
+                                <div class="h4 mb-0 fw-black text-warning" id="somaTotalParadas">00:00:00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4 align-items-end">
+                    <div class="col-md-4">
+                        <label class="small fw-bold text-muted">DATA/HORA INICIAL</label>
+                        <input type="datetime-local" id="filtroDataInicio" class="form-control border-0 shadow-sm bg-light">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small fw-bold text-muted">DATA/HORA FINAL</label>
+                        <input type="datetime-local" id="filtroDataFim" class="form-control border-0 shadow-sm bg-light">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100 fw-bold" onclick="gerarRelatorio()"><i class="bi bi-search me-2"></i>GERAR</button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 400px; border-radius: 10px;">
+                    <table class="table table-hover align-middle mb-0" id="tabelaRelatorio">
+                        <thead class="table-dark sticky-top">
+                            <tr><th>Início</th><th>Fim</th><th>Duração</th><th>Motivo</th><th>Operador</th><th class="text-center">Ações</th></tr>
+                        </thead>
+                        <tbody id="corpoRelatorio">
+                            <tr><td colspan="6" class="text-center text-muted py-4">Selecione o período e clique em gerar.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button class="btn btn-success fw-bold" onclick="exportarExcel()"><i class="bi bi-file-excel me-1"></i> EXCEL</button>
+                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">FECHAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Justificativa -->
+<div class="modal fade" id="modalEditarJustificativa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Editar Justificativa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editIdParada">
+                <label class="form-label fw-bold">Selecione o novo motivo:</label>
+                <select id="editMotivoSelect" class="form-select form-select-lg mb-3">
+                    <option value="Setup">SETUP</option>
+                    <option value="Engenharia">ENGENHARIA ATUANDO</option>
+                    <option value="Material">ABASTECIMENTO / MATERIAL</option>
+                    <option value="Limpeza">LIMPEZA / 5S</option>
+                    <option value="Outros">OUTROS (ESPECIFICAR)</option>
+                </select>
+                <div id="editContainerOutros" class="d-none">
+                    <textarea id="editMotivoOutros" class="form-control" rows="3" placeholder="Descreva o motivo..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-primary fw-bold w-100" onclick="salvarEdicaoJustificativa()">SALVAR ALTERAÇÕES</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos e Scripts mantidos e otimizados -->
+<style>
+    body {
+        background-color: #f0f2f5;
+        color: #334155;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .fw-black {
+        font-weight: 900;
+    }
+
+    .ct-label-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .ct-value-main {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1;
+    }
+
+    .ct-eff-main {
+        font-size: 3.8rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .ct-light-container {
+        height: 16px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ct-light-marker {
+        position: absolute;
+        width: 4px;
+        height: 100%;
+        background: #1e293b;
+        left: 50%;
+        z-index: 10;
+    }
+
+    .badge-lado {
+        font-size: 1.1rem;
+        padding: 5px 15px;
+        border-radius: 6px;
+        font-weight: 800;
+    }
+
+    .lado-top {
+        background-color: #0284c7 !important;
+        color: white !important;
+    }
+
+    .lado-bot {
+        background-color: #f59e0b !important;
+        color: #1e293b !important;
+    }
+
+    .lado-na {
+        background-color: #94a3b8 !important;
+        color: white !important;
+    }
+
+    .status-erro-anim {
+        animation: pulse-light-danger 1.5s infinite alternate;
+        border: 3px solid #ef4444 !important;
+    }
+
+    @@keyframes pulse-light-danger {
+        from {
+            box-shadow: 0 0 0px #ef4444;
+        }
+
+        to {
+            box-shadow: 0 0 20px #ef4444;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+    <script>
+        let meuGrafico = null;
+        let idParadaAtualAtiva = null;
+        const linhaAtual = new URLSearchParams(window.location.search).get('line') || 'SMD1';
+
+        $(document).ready(function() {
+            $('#btnAndon').attr('href', '/Fuji/Andon?line=' + linhaAtual);
+            atualizarMonitoramento();
+            atualizarCycleTimeCalculado();
+            atualizarDadosGrafico();
+
+            setInterval(atualizarMonitoramento, 5000);
+            setInterval(atualizarCycleTimeCalculado, 10000);
+            setInterval(atualizarDadosGrafico, 30000);
+
+            // Listener para o select de edição
+            $('#editMotivoSelect').on('change', function() {
+                $('#editContainerOutros').toggleClass('d-none', $(this).val() !== 'Outros');
+            });
+        });
+
+        // === 1. MONITORAMENTO E CABEÇALHO ===
+        function atualizarMonitoramento() {
+            $.get('/Fuji/ObterStatusAtual?line=' + linhaAtual).done(function(res) {
+                if (!res.success) return;
+                $('#labelMaquina').text("Linha " + res.line);
+                $('#nomeProduto').text(res.produto);
+                $('#qtdTotalLinha').text((res.producidoLote || 0));
+
+                const bLado = $('#badgeLadoMonitoramento').removeClass('lado-top lado-bot lado-na bg-primary bg-warning text-dark text-white');
+                if (res.lado === 'T') bLado.text('TOP').addClass('lado-top bg-primary text-white');
+                else if (res.lado === 'B') bLado.text('BOTTOM').addClass('lado-bot bg-warning text-dark');
+                else bLado.text('N/A').addClass('lado-na');
+
+                idParadaAtualAtiva = res.paradaEmAberto ? res.idParada : null;
+                atualizarInterface(res);
+            });
+        }
+
+        function atualizarInterface(res) {
+            const card = $('#statusCard').removeClass('status-erro-anim bg-danger');
+            const badge = $('#statusTexto').removeClass('bg-danger bg-success');
+            if (res.paradaEmAberto) {
+                card.addClass('status-erro-anim');
+                badge.text((res.motivoParada || "LINHA PARADA").toUpperCase()).addClass('bg-danger');
+            } else { badge.text("OPERANDO").addClass('bg-success'); }
+        }
+
+        // === 2. CYCLE TIME (BARRA INSTANTÂNEA) ===
+        function atualizarCycleTimeCalculado() {
+            $.get('/Fuji/CalcularCycleTimeAutomatico?line=' + linhaAtual).done(function(res) {
+                if (res.success) {
+                    const takt = res.taktTeoricoSegundos || 1;
+                    const ctMedio = res.cicloRealMedioSegundos || 0;
+                    const ctUltimo = res.cicloUltimoSegundos || ctMedio;
+                    const pan = res.pan || 1;
+
+                    $('#taktValor').text(res.taktTeoricoFormatado || '--:--');
+                    $('#realValor').text(res.cicloRealFormatado || '--:--');
+                    $('#eficienciaCT').text(res.eficiencia + '%');
+                    $('#ctAmostras').text(`Amostras: ${res.amostras}/10`);
+                    $('#ciclosHora').text(ctMedio > 0 ? Math.round((3600 / ctMedio) * pan) + ' UPH' : '0 UPH');
+
+                    let pct = ctUltimo <= takt ? (ctUltimo / takt) * 50 : 50 + (Math.min((ctUltimo - takt) / takt, 1) * 50);
+                    let corBarra = ctUltimo <= takt ? '#22c55e' : (ctUltimo > takt * 1.2 ? '#ef4444' : '#eab308');
+                    $('#realBar').css({ 'width': Math.max(pct, 2) + '%', 'background': corBarra });
+                }
+            });
+        }
+
+        // === 3. LÓGICA DE RELATÓRIO E EDIÇÃO (REINCLUÍDA) ===
+        function abrirModalRelatorio() {
+            $('#relatorioLinhaNome').text(linhaAtual);
+            const agora = new Date();
+            const inicio = new Date(agora.setHours(0,0,0,0)).toLocaleString('sv-SE').replace(' ', 'T').slice(0, 16);
+            const fim = new Date().toLocaleString('sv-SE').replace(' ', 'T').slice(0, 16);
+            $('#filtroDataInicio').val(inicio);
+            $('#filtroDataFim').val(fim);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRelatorio')).show();
+        }
+
+        function gerarRelatorio() {
+                    const inicio = $('#filtroDataInicio').val();
+                    const fim = $('#filtroDataFim').val();
+                    $('#corpoRelatorio').html('<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>');
+
+                    $.get('/Fuji/ObterRelatorioParadas', { line: linhaAtual, inicio: inicio, fim: fim }).done(function (res) {
+                        let html = '';
+                        let somaSegundos = 0;
+
+                        if (res && res.length > 0) {
+                            res.forEach(p => {
+                                let tIni = new Date(p.inicio).getTime();
+                                let textoFim = '';
+                                let textoDuracao = '';
+
+                                // Tenta criar a data de fim
+                                let dataFim = p.fim ? new Date(p.fim) : null;
+
+                                // VALIDAÇÃO BLINDADA:
+                                // 1. Tem dados?
+                                // 2. A data é matematicamente válida (!isNaN)?
+                                // 3. O ano é maior que 2000? (Ignora datas 0001-01-01 do C#)
+                                if (dataFim && !isNaN(dataFim.getTime()) && dataFim.getFullYear() > 2000) {
+                                    let tFim = dataFim.getTime();
+                                    let duracaoSegundos = Math.floor((tFim - tIni) / 1000);
+
+                                    // Trava de segurança para não somar tempo negativo (ex: relógios dessincronizados)
+                                    if (duracaoSegundos < 0) duracaoSegundos = 0;
+
+                                    somaSegundos += duracaoSegundos;
+
+                                    textoFim = dataFim.toLocaleString();
+                                    textoDuracao = p.duracao || formatarSegundos(duracaoSegundos);
+                                } else {
+                                    // Se caiu aqui, a data é vazia, nula ou 0001-01-01. Logo, está EM ABERTO.
+                                    textoFim = '<span class="badge bg-danger">EM ABERTO</span>';
+                                    textoDuracao = '<span class="text-muted small"><i>Em andamento...</i></span>';
+                                }
+
+                                html += `<tr>
+                                    <td>${new Date(p.inicio).toLocaleString()}</td>
+                                    <td>${textoFim}</td>
+                                    <td class="fw-bold text-danger">${textoDuracao}</td>
+                                    <td>${p.motivo}</td>
+                                    <td>${p.operador || 'Sistema'}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="abrirEditarJustificativa(${p.id}, '${p.motivo}')"><i class="bi bi-pencil-fill"></i></button>
+                                    </td>
+                                </tr>`;
+                            });
+
+                            $('#somaTotalParadas').text(formatarSegundos(somaSegundos));
+                        } else {
+                            html = '<tr><td colspan="6" class="text-center">Nenhum dado encontrado no período.</td></tr>';
+                            $('#somaTotalParadas').text("00:00:00");
+                        }
+
+                        $('#corpoRelatorio').html(html);
+                    });
+                }
+
+        function abrirEditarJustificativa(id, motivo) {
+            $('#editIdParada').val(id);
+            const pre = ["Setup", "Engenharia", "Material", "Limpeza"];
+            if (pre.includes(motivo)) { $('#editMotivoSelect').val(motivo); $('#editContainerOutros').addClass('d-none'); }
+            else { $('#editMotivoSelect').val('Outros'); $('#editContainerOutros').removeClass('d-none'); $('#editMotivoOutros').val(motivo.replace("Outros: ", "")); }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarJustificativa')).show();
+        }
+
+        function salvarEdicaoJustificativa() {
+            const id = $('#editIdParada').val();
+            const mot = $('#editMotivoSelect').val();
+            const final = mot === 'Outros' ? "Outros: " + $('#editMotivoOutros').val() : mot;
+            $.post('/Fuji/EditarJustificativa', { id: id, novoMotivo: final }).done(function(res) {
+                if(res.success) { bootstrap.Modal.getInstance(document.getElementById('modalEditarJustificativa')).hide(); gerarRelatorio(); }
+            });
+        }
+
+        function exportarExcel() {
+            window.location.href = `/Fuji/ExportarRelatorioExcel?line=${linhaAtual}&inicio=${$('#filtroDataInicio').val()}&fim=${$('#filtroDataFim').val()}`;
+        }
+
+        function formatarSegundos(s) {
+            const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
+            return [h, m, sec].map(v => v < 10 ? "0" + v : v).join(":");
+        }
+
+        // === 4. GRÁFICO E AUXILIARES ===
+        function atualizarDadosGrafico() {
+            $.get('/Fuji/ObterDadosGrafico?line=' + linhaAtual).done(function(res) {
+                if (!res || !res.logs) return;
+                const logsProc = res.logs.map(l => ({ t: new Date(l.t).getTime(), q: l.q }));
+                let labels = [], valores = [], motivos = [];
+                const agora = new Date(res.agora);
+                for (let i = 23; i >= 0; i--) {
+                    let hIni = new Date(agora); hIni.setHours(agora.getHours() - i, 0, 0, 0);
+                    labels.push(hIni.getHours().toString().padStart(2, '0') + ":00");
+                    let logsHora = logsProc.filter(l => l.t >= hIni.getTime() && l.t < hIni.getTime() + 3600000);
+                    let prod = logsHora.length > 0 ? (logsHora[logsHora.length-1].q - logsHora[0].q) * (res.pan) : 0;
+                    valores.push(Math.max(prod, 0));
+                    let paradasH = (res.paradas || []).filter(p => new Date(p.inicio).getTime() >= hIni.getTime() && new Date(p.inicio).getTime() < hIni.getTime() + 3600000);
+                    motivos.push(paradasH.length > 0 ? "P" : null);
+                }
+                renderGrafico(labels, valores, res.meta, motivos);
+                console.log("Dados do gráfico atualizados:", { labels, valores, meta: res.meta, motivos });
+            });
+        }
+
+        // === 5. DETALHES DA HORA DO GRÁFICO ===
+        function abrirDetalhesDaHora(horaStr) {
+            // horaStr vem no formato "HH:00", ex: "14:00"
+            const agora = new Date();
+            const ano = agora.getFullYear();
+            const mes = String(agora.getMonth() + 1).padStart(2, '0');
+            const dia = String(agora.getDate()).padStart(2, '0');
+
+            // Monta a string do filtro inicial (YYYY-MM-DDTHH:mm)
+            const inicioStr = `${ano}-${mes}-${dia}T${horaStr}`;
+
+            // Calcula a hora final (+1 hora)
+            const horaNum = parseInt(horaStr.split(':')[0]);
+            let horaFimStr = String(horaNum + 1).padStart(2, '0') + ":00";
+            let fimStr = `${ano}-${mes}-${dia}T${horaFimStr}`;
+
+            // Previne erro caso o clique seja na barra das 23:00
+            if (horaNum === 23) {
+                fimStr = `${ano}-${mes}-${dia}T23:59`;
+            }
+
+            // Popula os inputs da modal de relatório
+            $('#filtroDataInicio').val(inicioStr);
+            $('#filtroDataFim').val(fimStr);
+            $('#relatorioLinhaNome').text(linhaAtual + " (Detalhe: " + horaStr + ")");
+
+            // Abre a modal e dispara a busca
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRelatorio')).show();
+            gerarRelatorio();
+        }
+
+        function renderGrafico(labels, valores, meta, motivos) {
+            const ctx = document.getElementById('graficoProducao').getContext('2d');
+            if (meuGrafico) meuGrafico.destroy();
+            meuGrafico = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Paradas', data: motivos.map(m => m ? (meta || Math.max(...valores, 1)) : 0), backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444', borderWidth: {top:2}, order: 1 },
+                        { label: 'Produzido', data: valores, backgroundColor: valores.map(v => v >= meta*0.9 ? '#10b981' : '#64748b'), borderRadius: 5, order: 2 },
+                        { type: 'line', label: 'Meta', data: labels.map(() => meta), borderColor: '#f59e0b', borderWidth: 2, borderDash: [5,5], pointRadius: 0, order: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    onClick: (e, el) => { if(el.length > 0) abrirDetalhesDaHora(labels[el[0].index]); },
+                    plugins: { legend: { display: false } },
+                    scales: { x: { stacked: true }, y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function registrarParadaManual() { bootstrap.Modal.getOrCreateInstance(document.getElementById('modalParada')).show(); }
+    </script>
+}

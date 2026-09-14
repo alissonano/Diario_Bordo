@@ -1,0 +1,277 @@
+﻿@model Diario_de_Bordo.Models.RequisicaoViewModel
+@Html.AntiForgeryToken() @* <--- ADICIONE ISSO AQUI *@
+
+@{
+    ViewData["Title"] = "Gestão de Requisições";
+}
+
+<style>
+    .main-wrapper {
+        padding: 20px;
+        width: 100%;
+        background-color: #f4f7f6;
+        min-height: 100vh;
+    }
+
+    .requisicao-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        border-left: 5px solid #ccc;
+        height: 100%;
+    }
+
+        .requisicao-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+    .card-estoque {
+        border-left-color: #0dcaf0;
+    }
+
+    .card-avulso {
+        border-left-color: #ffc107;
+    }
+
+    /* Estilo para item sem estoque */
+    .card-zerado {
+        border-left-color: #dc3545 !important;
+        background-color: #fff5f5;
+    }
+
+    .img-preview {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        background-color: #ebebeb;
+    }
+
+    .btn-floating-action {
+        border-radius: 50px;
+        padding: 5px 20px;
+    }
+
+    .badge-saldo {
+        font-size: 0.7rem;
+        vertical-align: middle;
+    }
+</style>
+
+<div class="main-wrapper">
+    @* Cabeçalho *@
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h2 class="fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Requisições de Peças</h2>
+            <div class="badge bg-dark">@Model.Pendentes.Count() Pendentes</div>
+        </div>
+
+        <div class="btn-group shadow-sm">
+            <button id="btnPendentes" class="btn btn-primary active" onclick="alternarAbas('pendentes')">Pendentes</button>
+            <button id="btnHistorico" class="btn btn-outline-primary" onclick="alternarAbas('historico')">Histórico</button>
+        </div>
+    </div>
+
+    @* --- GRID DE PENDENTES --- *@
+    <div id="secaoPendentes" class="row g-3">
+        @if (!Model.Pendentes.Any())
+        {
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-box2-heart display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">Tudo em dia! Nenhuma requisição aberta.</h4>
+            </div>
+        }
+
+        @foreach (var req in Model.Pendentes)
+        {
+            var estoqueZerado = req.ItemEstoqueId != null && req.ItemEstoque?.QuantidadeAtual <= 0;
+
+            <div class="col-12 col-md-6 col-lg-4 col-xxl-3">
+                <div class="card requisicao-card shadow-sm @(req.ItemEstoqueId != null ? (estoqueZerado ? "card-zerado" : "card-estoque") : "card-avulso")">
+                    <div class="card-body d-flex flex-column">
+
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small"><i class="bi bi-clock me-1"></i>@req.DataSolicitacao.ToString("dd/MM HH:mm")</span>
+                            <span class="badge @(req.ItemEstoqueId != null ? (estoqueZerado ? "bg-danger" : "bg-info-subtle text-info") : "bg-warning-subtle text-warning")">
+                                @(req.ItemEstoqueId != null ? (estoqueZerado ? "SEM ESTOQUE" : "ESTOQUE") : "AVULSO")
+                            </span>
+                        </div>
+
+                        <h5 class="card-title fw-bold mb-1">
+                            @(req.ItemEstoqueId != null ? req.ItemEstoque?.PartNumber : "Novo Item")
+                        </h5>
+                        <p class="card-text text-secondary small flex-grow-1">
+                            @(req.ItemEstoqueId != null ? req.ItemEstoque?.Descricao : req.DescricaoAvulsa)
+                        </p>
+
+                        @if (estoqueZerado)
+                        {
+                            <div class="alert alert-danger p-1 mb-2 text-center" style="font-size: 0.75rem;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Saldo insuficiente no sistema!
+                            </div>
+                        }
+
+                        <hr class="my-2 opacity-50">
+
+                        <div class="row align-items-center mb-3">
+                            <div class="col-6">
+                                <small class="d-block text-muted">Solicitante</small>
+                                <span class="fw-semibold text-truncate d-block">@req.TecnicoResponsavel</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <small class="d-block text-muted">Ped / Saldo</small>
+                                <span class="badge bg-dark fs-6">@req.Quantidade</span>
+                                @if (req.ItemEstoqueId != null)
+                                {
+                                    <span class="badge @(estoqueZerado ? "bg-danger" : "bg-secondary") badge-saldo">
+                                        @req.ItemEstoque?.QuantidadeAtual
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(req.FotoPathAvulsa))
+                        {
+                            <img src="@Url.Action("VerFoto", "Estoque", new { path = req.FotoPathAvulsa })"
+                                 class="img-preview mb-3"
+                                 onclick="verFoto('@req.FotoPathAvulsa')"
+                                 alt="Evidência">
+                        }
+
+                        <div class="d-grid gap-2">
+                            @if (req.ItemEstoqueId != null)
+                            {
+                                <button class="btn btn-success btn-floating-action"
+                                        onclick="confirmarBaixa(@req.Id)"
+                                        @(estoqueZerado ? "disabled" : "")>
+                                    <i class="bi bi-check2-circle me-1"></i> Confirmar Baixa
+                                </button>
+                            }
+                            else
+                            {
+                                <a class="btn btn-primary btn-floating-action" asp-action="CadastrarItem" asp-controller="Estoque">
+                                    <i class="bi bi-plus-lg me-1"></i> Cadastrar Item
+                                </a>
+                            }
+                            <button class="btn btn-link btn-sm text-danger text-decoration-none" onclick="cancelarRequisicao(@req.Id)">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar Pedido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* --- GRID DE HISTÓRICO --- *@
+    <div id="secaoHistorico" class="row g-3 d-none">
+        @foreach (var hist in Model.Historico)
+        {
+            <div class="col-12 col-md-4 col-xxl-2">
+                <div class="card border-0 shadow-sm opacity-75">
+                    <div class="card-body p-2 small">
+                        <div class="fw-bold">@hist.DataSolicitacao.ToShortDateString()</div>
+                        <div class="text-truncate">@(hist.ItemEstoque?.PartNumber ?? hist.DescricaoAvulsa)</div>
+                        <div class="d-flex justify-content-between">
+                            <span>Qtd: @hist.Quantidade</span>
+                            <span class="@(hist.Status == 1 ? "text-success" : "text-danger")">
+                                @(hist.Status == 1 ? "PAGO" : "CANCEL")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@* Modal de Foto *@
+<div class="modal fade" id="modalFoto" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 bg-transparent">
+            <div class="modal-body p-0 text-center">
+                <img id="imgExpandida" src="" class="img-fluid rounded shadow-lg">
+                <button type="button" class="btn btn-light mt-3" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function alternarAbas(aba) {
+            if (aba === 'pendentes') {
+                $('#secaoPendentes').removeClass('d-none');
+                $('#secaoHistorico').addClass('d-none');
+                $('#btnPendentes').addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
+                $('#btnHistorico').removeClass('active').addClass('btn-outline-primary').removeClass('btn-primary');
+            } else {
+                $('#secaoPendentes').addClass('d-none');
+                $('#secaoHistorico').removeClass('d-none');
+                $('#btnHistorico').addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
+                $('#btnPendentes').removeClass('active').addClass('btn-outline-primary').removeClass('btn-primary');
+            }
+        }
+
+        function verFoto(path) {
+            const url = '@Url.Action("VerFoto", "Estoque")' + '?path=' + encodeURIComponent(path);
+            $('#imgExpandida').attr('src', url);
+            $('#modalFoto').modal('show');
+        }
+
+        function confirmarBaixa(id) {
+            const btn = event.currentTarget;
+            if (confirm("Confirmar a saída desta peça do estoque?")) {
+                btn.disabled = true;
+                // 'solicitacaoId' deve ser o nome do parâmetro no seu Controller
+                $.post('@Url.Action("BaixarSolicitacao", "Estoque")', { solicitacaoId: id }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert("Não foi possível baixar: " + res.message);
+                        btn.disabled = false;
+                    }
+                }).fail(function() {
+                    alert("Erro crítico ao processar requisição.");
+                    btn.disabled = false;
+                });
+            }
+        }
+
+        function cancelarRequisicao(id) {
+            if (confirm("Deseja realmente cancelar este pedido?")) {
+                $.post('@Url.Action("CancelarSolicitacao", "Estoque")', { id: id }, function (res) {
+                    location.reload();
+                });
+            }
+        }
+
+
+                function cancelarRequisicao(id) {
+            if (confirm("Deseja realmente cancelar este pedido?")) {
+                // Captura o token de segurança da página
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("CancelarSolicitacao", "Estoque")',
+                    type: 'POST',
+                    data: {
+                        id: id,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            location.reload(); // Recarrega para mover o card para o histórico
+                        } else {
+                            alert("Erro: " + res.message);
+                        }
+                    },
+                    error: function () {
+                        alert("Erro ao conectar com o servidor. Verifique o console.");
+                    }
+                });
+            }
+        }
+    </script>
+}

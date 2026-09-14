@@ -1,0 +1,236 @@
+﻿@{
+    // Define o título da página que aparece na aba do navegador
+    ViewData["Title"] = "Gerenciador de Setup";
+
+    // Garante que o layout será aplicado (opcional se você tiver um _ViewStart.cshtml)
+    Layout = "_Layout";
+}
+
+@using Diario_de_Bordo.Models
+@using Diario_de_Bordo.Services
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-primary fw-bold">Gerenciador de Folhas de Setup</h3>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUpload">
+            <i class="bi bi-plus-lg"></i> Criar Nova Folha
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Linha</th>
+                        <th>Nome do Produto</th>
+                        <th>Data Importação</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyGerenciador"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalUpload" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-plus"></i> Nova Folha de Setup</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formUpload" class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Linha</label>
+                        <select id="linha" class="form-select" required>
+                            <option value="SMD1">SMD 1</option>
+                            <option value="SMD2">SMD 2</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de Máquina</label>
+                        <select id="maquinaTipo" class="form-select" required>
+                            <option value="Fuji">Fuji</option>
+                            <option value="Assembleon">Assembleon</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Arquivo</label>
+                        <input type="file" id="fileInput" class="form-control" required>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-secondary" id="btnSubmitForm">
+                            <i class="bi bi-gear"></i> Processar Arquivo
+                        </button>
+                    </div>
+                </form>
+
+                <hr>
+
+                <h6>Pré-visualização dos Dados</h6>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr><th>Máquina</th><th>Slot</th><th>Part Number</th></tr>
+                        </thead>
+                        <tbody id="tbodyPreview"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmar" disabled>
+                    <i class="bi bi-check-circle"></i> Confirmar Importação
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetalhes" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="tituloDetalhes"><i class="bi bi-eye"></i> Detalhes da Folha</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                        <tr><th>Máquina</th><th>Slot</th><th>Part Number</th></tr>
+                    </thead>
+                    <tbody id="tbodyDetalhes"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Variável GLOBAL para segurar os dados entre o Processar e o Confirmar
+            let dadosGlobais = [];
+
+            // 1. Carregar lista ao iniciar
+            carregarLista();
+
+            function carregarLista() {
+                $.get('@Url.Action("ListarSetups", "Setup")', function (res) {
+                    let tbody = $('#tbodyGerenciador');
+                    tbody.empty();
+                     res.forEach(item => {
+                    tbody.append(`<tr>
+                        <td>${item.linha}</td>
+                        <td>${item.programa}</td>
+                        <td>${new Date(item.dataCriacao).toLocaleDateString()}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-info text-white me-2" onclick="visualizarSetup('${item.linha}', '${item.programa}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="excluirSetup('${item.linha}', '${item.programa}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`);
+                    });
+                });
+            }
+
+            // 2. Excluir Setup
+            window.excluirSetup = function(linha, programa) {
+                if(confirm(`Deseja apagar o setup ${programa}?`)) {
+                    $.post('@Url.Action("ExcluirSetup", "Setup")', { linha: linha, programa: programa }, function() {
+                        alert("Excluído com sucesso!");
+                        carregarLista();
+                    });
+                }
+            };
+
+            $('#formUpload').on('submit', function (e) {
+                    e.preventDefault();
+                    let file = $('#fileInput')[0].files[0];
+                    let formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("maquinaTipo", $('#maquinaTipo').val());
+                    $('#btnSubmitForm').html('<span class="spinner-border spinner-border-sm"></span> Processando...').prop('disabled', true);
+
+                    $.ajax({
+                        url: '@Url.Action("UploadArquivoUnico", "Setup")',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (res) {
+                            $('#btnSubmitForm').html('<i class="bi bi-gear"></i> Processar Arquivo').prop('disabled', false);
+                            if (res.dados && res.dados.length > 0) {
+                                dadosGlobais = res.dados;
+
+                                // Populando a tabela da modal
+                                let tbody = $('#tbodyPreview');
+                                tbody.empty();
+                                dadosGlobais.forEach(item => {
+                                    tbody.append(`<tr>
+                                        <td>${item.maquina}</td>
+                                        <td>${item.slot}</td>
+                                        <td>${item.partnumber}</td>
+                                    </tr>`);
+                                });
+
+                                // Habilita o botão de confirmar
+                                $('#btnConfirmar').prop('disabled', false);
+                                alert("Arquivo processado! Verifique os dados abaixo e clique em Confirmar.");
+                            }
+                        },
+                        error: function (xhr) {
+                            alert("Erro ao processar: " + xhr.responseText);
+                        }
+                    });
+                });
+
+                $('#btnConfirmar').on('click', function() {
+                    let payload = {
+                        linha: $('#linha').val(),
+                        programa: dadosGlobais[0].programa, // O programa já vem processado do CSV
+                        dados: dadosGlobais
+                    };
+
+                    $.ajax({
+                        url: '@Url.Action("ConfirmarImportacao", "Setup")',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        success: function() {
+                        alert("Importação confirmada!");
+                        $('#modalUpload').modal('hide');
+                        carregarLista(); // Atualiza só a tabela, mais fluido!
+                            },
+                        error: function(xhr) {
+                            alert("Erro ao salvar: " + xhr.responseText);
+                        }
+                    });
+                });
+            });
+
+                    window.visualizarSetup = function(linha, programa) {
+            $.get('@Url.Action("GetDetalhesSetup", "Setup")', { linha: linha, programa: programa }, function(res) {
+                let tbody = $('#tbodyDetalhes');
+                tbody.empty();
+                $('#tituloDetalhes').text(`Detalhes: ${programa} - ${linha}`);
+
+                res.forEach(item => {
+                    tbody.append(`<tr>
+                        <td>${item.maquina}</td>
+                        <td>${item.slot}</td>
+                        <td>${item.partnumber}</td>
+                    </tr>`);
+                });
+
+                $('#modalDetalhes').modal('show');
+            });
+        };
+    </script>
+}
